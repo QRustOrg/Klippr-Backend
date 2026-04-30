@@ -1,0 +1,6 @@
+@Klippr_Backend_HostAddress = http://localhost:5229
+
+GET {{Klippr_Backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
