@@ -1,4 +1,5 @@
 using Klippr_Backend.Promotions.Domain.Commands;
+using Klippr_Backend.Promotions.Domain.ValueObjects;
 
 namespace Klippr_Backend.Promotions.Domain.Aggregates;
 
