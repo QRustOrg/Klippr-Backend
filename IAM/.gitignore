@@ -1,0 +1,14 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.db
+*.db-shm
+*.db-wal
+*.user
+*.DotSettings
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store

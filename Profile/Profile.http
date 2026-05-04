@@ -1,0 +1,105 @@
+### Profile Bounded Context API
+### Base URL: https://localhost:5001/api
+
+@baseUrl = https://localhost:5001/api
+@contentType = application/json
+@token = your-jwt-token-here
+
+### Create Consumer Profile
+POST {{baseUrl}}/profiles/consumer
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "phoneNumber": "+1234567890"
+}
+
+### Get Consumer Profile
+GET {{baseUrl}}/profiles/consumer/{{profileId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Update Consumer Profile
+PUT {{baseUrl}}/profiles/consumer
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "profileId": "{{profileId}}",
+  "firstName": "John",
+  "lastName": "Doe",
+  "phoneNumber": "+1234567890",
+  "street": "123 Main St",
+  "city": "New York",
+  "state": "NY",
+  "country": "USA",
+  "zipCode": "10001"
+}
+
+### Create Business Profile
+POST {{baseUrl}}/profiles/business
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "businessName": "ACME Corporation",
+  "taxId": "12-3456789",
+  "category": {
+    "name": "Retail",
+    "description": "Retail business"
+  }
+}
+
+### Get Business Profile
+GET {{baseUrl}}/profiles/business/{{profileId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Update Business Profile
+PUT {{baseUrl}}/profiles/business
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "profileId": "{{profileId}}",
+  "businessName": "ACME Corporation",
+  "category": "Retail",
+  "description": "Leading retail business",
+  "street": "456 Business Ave",
+  "city": "Los Angeles",
+  "state": "CA",
+  "country": "USA",
+  "zipCode": "90001"
+}
+
+### Submit Business Verification
+POST {{baseUrl}}/verification/submit
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "profileId": "{{profileId}}",
+  "documentUrl": "https://storage.example.com/documents/business-license-12345.pdf"
+}
+
+### Approve Business Verification (Admin Only)
+POST {{baseUrl}}/verification/approve
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+{
+  "profileId": "{{profileId}}",
+  "documentUrl": "https://storage.example.com/documents/business-license-12345.pdf"
+}
+
+### Get Pending Verification Profiles (Admin Only)
+GET {{baseUrl}}/admin/profiles/pending-verification?pageNumber=1&pageSize=10
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}
+
+### Get User Profiles (Admin Only)
+GET {{baseUrl}}/admin/profiles/by-user/{{userId}}
+Content-Type: {{contentType}}
+Authorization: Bearer {{token}}

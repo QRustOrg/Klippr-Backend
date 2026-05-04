@@ -1,0 +1,48 @@
+@baseUrl=https://localhost:7001/api
+
+### Sign Up Consumer
+POST {{baseUrl}}/authentication/sign-up/consumer
+Content-Type: application/json
+
+{
+  "email": "consumer@example.com",
+  "password": "SecurePassword123!",
+  "firstName": "Juan",
+  "lastName": "Pérez"
+}
+
+### Sign Up Business
+POST {{baseUrl}}/authentication/sign-up/business
+Content-Type: application/json
+
+{
+  "email": "business@example.com",
+  "password": "SecurePassword123!",
+  "businessName": "Klippr Store",
+  "taxId": "123456789"
+}
+
+### Sign In
+POST {{baseUrl}}/authentication/sign-in
+Content-Type: application/json
+
+{
+  "email": "consumer@example.com",
+  "password": "SecurePassword123!"
+}
+
+### Get User by ID (requires authentication)
+GET {{baseUrl}}/users/{userId}
+Authorization: Bearer {token}
+
+### Get User by Email (requires authentication)
+GET {{baseUrl}}/users/email/consumer@example.com
+Authorization: Bearer {token}
+
+### Get All Users (requires authentication)
+GET {{baseUrl}}/users?pageNumber=1&pageSize=10
+Authorization: Bearer {token}
+
+### Get Users by Role (requires authentication)
+GET {{baseUrl}}/users/role/CONSUMER?pageNumber=1&pageSize=10
+Authorization: Bearer {token}
