@@ -43,4 +43,11 @@ public interface IPromotionCommandService
     /// <param name="command">Datos requeridos para cancelar la promoción.</param>
     /// <param name="cancellationToken">Token para cancelar la operación asincrónica.</param>
     Task CancelAsync(CancelPromotionCommand command, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Elimina una promoción existente.
+    /// </summary>
+    /// <param name="command">Datos requeridos para eliminar la promoción.</param>
+    /// <param name="cancellationToken">Token para cancelar la operación asincrónica.</param>
+    Task DeleteAsync(DeletePromotionCommand command, CancellationToken cancellationToken = default);
 }

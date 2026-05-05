@@ -89,6 +89,23 @@ public class PromotionCommandService(IPromotionRepository promotionRepository) :
             .ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public async Task DeleteAsync(
+        DeletePromotionCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        var promotion = await GetExistingPromotionAsync(command.PromotionId, cancellationToken)
+            .ConfigureAwait(false);
+
+        await promotionRepository
+            .DeleteAsync(promotion, cancellationToken)
+            .ConfigureAwait(false);
+
+        await promotionRepository
+            .SaveChangesAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     private async Task<Promotion> GetExistingPromotionAsync(
         Guid promotionId,
         CancellationToken cancellationToken)

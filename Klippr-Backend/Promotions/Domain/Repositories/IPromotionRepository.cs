@@ -53,6 +53,13 @@ public interface IPromotionRepository
     Task UpdateAsync(Promotion promotion, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Elimina una promocion existente del almacenamiento.
+    /// </summary>
+    /// <param name="promotion">Agregado de promocion que se desea eliminar.</param>
+    /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
+    Task DeleteAsync(Promotion promotion, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Persiste los cambios pendientes realizados a traves del repositorio.
     /// </summary>
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>

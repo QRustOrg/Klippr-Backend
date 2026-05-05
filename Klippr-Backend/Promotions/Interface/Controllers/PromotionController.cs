@@ -211,4 +211,29 @@ public class PromotionController(
             return BadRequest(exception.Message);
         }
     }
+
+    /// <summary>
+    /// Elimina una promocion existente.
+    /// </summary>
+    /// <param name="promotionId">Identificador unico de la promocion.</param>
+    /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
+    /// <returns>Resultado HTTP sin contenido cuando la eliminacion finaliza.</returns>
+    [HttpDelete("{promotionId:guid}")]
+    public async Task<IActionResult> DeleteAsync(
+        Guid promotionId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await promotionCommandService
+                .DeleteAsync(new DeletePromotionCommand(promotionId), cancellationToken)
+                .ConfigureAwait(false);
+
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
 }

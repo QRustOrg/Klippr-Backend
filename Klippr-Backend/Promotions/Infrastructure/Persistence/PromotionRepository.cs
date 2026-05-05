@@ -71,6 +71,16 @@ public class PromotionRepository(
     }
 
     /// <inheritdoc />
+    public Task DeleteAsync(Promotion promotion, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(promotion);
+
+        dbContext.Promotions.Remove(promotion);
+
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var promotionsWithEvents = dbContext.ChangeTracker
