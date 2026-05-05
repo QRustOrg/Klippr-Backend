@@ -12,8 +12,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
-builder.Services.AddDbContext<PromotionDbContext>();
+builder.Services.AddSwaggerGen();
+builder.Services.AddDbContext<PromotionDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IPromotionCommandService, PromotionCommandService>();
 builder.Services.AddScoped<IPromotionQueryService, PromotionQueryService>();
@@ -27,6 +30,16 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Klippr Backend API v1");
+        options.RoutePrefix = "swagger";
+    });
+
+    using var scope = app.Services.CreateScope();
+    var promotionDbContext = scope.ServiceProvider.GetRequiredService<PromotionDbContext>();
+    promotionDbContext.Database.EnsureCreated();
 }
 
 app.UseHttpsRedirection();

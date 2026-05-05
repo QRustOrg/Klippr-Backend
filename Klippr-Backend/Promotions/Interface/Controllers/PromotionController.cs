@@ -20,6 +20,8 @@ public class PromotionController(
     IPromotionCommandService promotionCommandService,
     IPromotionQueryService promotionQueryService) : ControllerBase
 {
+    private const string GetPromotionByIdRouteName = "GetPromotionById";
+
     /// <summary>
     /// Crea una nueva promocion en estado borrador.
     /// </summary>
@@ -38,8 +40,8 @@ public class PromotionController(
                 .CreateAsync(command, cancellationToken)
                 .ConfigureAwait(false);
 
-            return CreatedAtAction(
-                nameof(GetByIdAsync),
+            return CreatedAtRoute(
+                GetPromotionByIdRouteName,
                 new { promotionId },
                 new { promotionId });
         }
@@ -59,7 +61,7 @@ public class PromotionController(
     /// <param name="promotionId">Identificador unico de la promocion.</param>
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Resultado HTTP con la promocion encontrada.</returns>
-    [HttpGet("{promotionId:guid}")]
+    [HttpGet("{promotionId:guid}", Name = GetPromotionByIdRouteName)]
     public async Task<IActionResult> GetByIdAsync(
         Guid promotionId,
         CancellationToken cancellationToken)
