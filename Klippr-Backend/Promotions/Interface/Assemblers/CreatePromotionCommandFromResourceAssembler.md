@@ -1,3 +1,0 @@
-# CreatePromotionCommandFromResourceAssembler
-
-Convierte CreatePromotionResource en CreatePromotionCommand para el dominio.
