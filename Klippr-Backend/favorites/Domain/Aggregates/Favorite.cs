@@ -16,7 +16,7 @@ public class Favorite : IEntityWithCreatedUpdatedDate
 
     public Favorite(SaveFavoriteCommand command)
     {
-        FavoriteId  = ValueObjects.FavoriteId.New().Value;
+        FavoriteId = Guid.NewGuid().ToString();
         UserId      = command.UserId;
         PromotionId = command.PromotionId;
     }
