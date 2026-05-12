@@ -9,8 +9,8 @@ public class Favorite : IEntityWithCreatedUpdatedDate
 {
     private Favorite()
     {
-        FavoriteId = string.Empty;
-        UserId     = string.Empty;
+        FavoriteId  = string.Empty;
+        UserId      = string.Empty;
         PromotionId = string.Empty;
     }
 
@@ -20,7 +20,7 @@ public class Favorite : IEntityWithCreatedUpdatedDate
         UserId      = command.UserId;
         PromotionId = command.PromotionId;
     }
-    
+
     public static Favorite Create(UserId userId, PromotionId promotionId) =>
         new()
         {
@@ -28,16 +28,15 @@ public class Favorite : IEntityWithCreatedUpdatedDate
             UserId      = userId.Value,
             PromotionId = promotionId.Value
         };
-    
+
     public bool BelongsToUser(string userId) =>
         string.Equals(UserId, userId, StringComparison.Ordinal);
-    
 
     public int    Id          { get; private set; }
     public string FavoriteId  { get; private set; }
     public string UserId      { get; private set; }
     public string PromotionId { get; private set; }
-    
+
     [Column("CreatedAt")] public DateTimeOffset? CreatedDate { get; set; }
     [Column("UpdatedAt")] public DateTimeOffset? UpdatedDate { get; set; }
 }

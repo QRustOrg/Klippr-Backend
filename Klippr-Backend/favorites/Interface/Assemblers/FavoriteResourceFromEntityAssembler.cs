@@ -6,9 +6,5 @@ namespace Klippr_Backend.Favorites.Interface.Assemblers;
 public static class FavoriteResourceFromEntityAssembler
 {
     public static FavoriteResource ToResourceFromEntity(Favorite entity) =>
-        new(entity.Id,
-            entity.FavoriteId,
-            entity.UserId,
-            entity.PromotionId,
-            entity.CreatedDate);
+        new(entity.Id, entity.FavoriteId, entity.UserId, entity.PromotionId, entity.CreatedDate);
 }

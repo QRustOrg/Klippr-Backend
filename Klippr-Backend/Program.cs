@@ -1,30 +1,42 @@
+using Klippr_Backend.Shared.Domain.Repositories;
+using Klippr_Backend.Shared.Infrastructure.Interfaces.ASP.Configuration;
+using Klippr_Backend.Shared.Infrastructure.Mediator.Cortex.Configuration;
+using Klippr_Backend.Shared.Infrastructure.Persistence.EFC.Configuration;
+using Klippr_Backend.Shared.Infrastructure.Persistence.EFC.Repositories;
+using Klippr_Backend.Community.Application.Internal.CommandServices;
+using Klippr_Backend.Community.Application.Internal.QueryServices;
+using Klippr_Backend.Community.Domain.Repositories;
+using Klippr_Backend.Community.Domain.Services;
+using Klippr_Backend.Community.Infrastructure.Persistence.EFC.Repositories;
+using Klippr_Backend.Setting.Application.Internal.CommandServices;
+using Klippr_Backend.Setting.Application.Internal.QueryServices;
+using Klippr_Backend.Setting.Domain.Repositories;
+using Klippr_Backend.Setting.Domain.Services;
+using Klippr_Backend.Setting.Infrastructure.Persistence.EFC.Repositories;
 using Klippr_Backend.Favorites.Application.Services;
 using Klippr_Backend.Favorites.Domain.Repositories;
 using Klippr_Backend.Favorites.Domain.Services;
 using Klippr_Backend.Favorites.Infrastructure.Persistence;
-using Klippr_Backend.Favorites.Interface.Configuration;
 using Klippr_Backend.Favorites.Interface.Facade;
+using Cortex.Mediator.Commands;
+using Cortex.Mediator.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── MVC ────────────────────────────────────────────────────────────────────
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 builder.Services.AddControllers(options =>
-    options.Conventions.Add(new KebabCaseRouteNamingConvention())); // own class, not Shared
+    options.Conventions.Add(new KebabCaseRouteNamingConvention()));
 
-// ── CORS ───────────────────────────────────────────────────────────────────
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
 builder.Services.AddCors(options =>
     options.AddPolicy("AllowAllPolicy", policy =>
         policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
-// ── Database ───────────────────────────────────────────────────────────────
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-
-// Register FavoritesDbContext — own context, NOT the Shared AppDbContext
-builder.Services.AddDbContext<FavoritesDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (builder.Environment.IsDevelopment())
         options.UseMySQL(connectionString)
@@ -36,22 +48,14 @@ builder.Services.AddDbContext<FavoritesDbContext>(options =>
                .LogTo(Console.WriteLine, LogLevel.Error);
 });
 
-// ── Swagger ────────────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title   = "Klippr API — Favorites",
-        Version = "v1"
-    });
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Klippr API", Version = "v1" });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        In          = ParameterLocation.Header,
-        Name        = "Authorization",
-        Type        = SecuritySchemeType.Http,
-        BearerFormat = "JWT",
-        Scheme      = "bearer"
+        In = ParameterLocation.Header, Name = "Authorization",
+        Type = SecuritySchemeType.Http, BearerFormat = "JWT", Scheme = "bearer"
     });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
@@ -67,28 +71,41 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // ── Dependency Injection ───────────────────────────────────────────────────
-// Everything is scoped to the Favorites BC — zero references to Shared services
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+// Community
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IReviewCommandService, ReviewCommandService>();
+builder.Services.AddScoped<IReviewQueryServices, ReviewQueryService>();
+
+// Setting
+builder.Services.AddScoped<IPreferenceRepository, PreferenceRepository>();
+builder.Services.AddScoped<IPreferenceCommandService, PreferenceCommandService>();
+builder.Services.AddScoped<IPreferenceQueryServices, PreferenceQueryService>();
+
+// Favorites
 builder.Services.AddScoped<IFavoriteRepository,     FavoriteRepository>();
-builder.Services.AddScoped<IFavoriteUnitOfWork,     FavoriteUnitOfWork>();
-builder.Services.AddScoped<IFavoriteCommandService, FavoriteCommandService>();
-builder.Services.AddScoped<IFavoriteQueryService,   FavoriteQueryService>();
-builder.Services.AddScoped<IFavoritesContextFacade, FavoritesContextFacade>();
+builder.Services.AddScoped<IFavoriteCommandService,  FavoriteCommandService>();
+builder.Services.AddScoped<IFavoriteQueryService,    FavoriteQueryService>();
+builder.Services.AddScoped<IFavoritesContextFacade,  FavoritesContextFacade>();
 
-// ── Pipeline ───────────────────────────────────────────────────────────────
+// ── Mediator ───────────────────────────────────────────────────────────────
+builder.Services.AddScoped(typeof(ICommandPipelineBehavior<>), typeof(LoggingCommandBehavior<>));
+builder.Services.AddCortexMediator(
+    configuration: builder.Configuration,
+    handlerAssemblyMarkerTypes: [typeof(Program)],
+    configure: options =>
+        options.AddOpenCommandPipelineBehavior(typeof(LoggingCommandBehavior<>)));
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<FavoritesDbContext>();
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     context.Database.EnsureCreated();
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+if (app.Environment.IsDevelopment()) { app.UseSwagger(); app.UseSwaggerUI(); }
 
 app.UseCors("AllowAllPolicy");
 app.UseHttpsRedirection();

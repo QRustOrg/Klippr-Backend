@@ -2,12 +2,13 @@ using Klippr_Backend.Favorites.Domain.Aggregates;
 using Klippr_Backend.Favorites.Domain.Commands;
 using Klippr_Backend.Favorites.Domain.Repositories;
 using Klippr_Backend.Favorites.Domain.Services;
+using Klippr_Backend.Shared.Domain.Repositories;
 
 namespace Klippr_Backend.Favorites.Application.Services;
 
 public class FavoriteCommandService(
-    IFavoriteRepository  favoriteRepository,
-    IFavoriteUnitOfWork  unitOfWork)           // ← own interface, not from Shared
+    IFavoriteRepository favoriteRepository,
+    IUnitOfWork         unitOfWork)
     : IFavoriteCommandService
 {
     public async Task<Favorite?> Handle(SaveFavoriteCommand command)
