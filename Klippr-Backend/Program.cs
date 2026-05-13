@@ -11,6 +11,8 @@ using Klippr_Backend.Redemption.Infrastructure.Persistence;
 using Klippr_Backend.Redemption.Infrastructure.Persistence.Repositories;
 using Klippr_Backend.Shared.Infrastructure.EventPublishing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,9 +51,9 @@ if (app.Environment.IsDevelopment())
 
     using var scope = app.Services.CreateScope();
     var promotionDbContext = scope.ServiceProvider.GetRequiredService<PromotionDbContext>();
-    promotionDbContext.Database.EnsureCreated();
+    EnsureContextTablesCreated(promotionDbContext, "Promotions");
     var redemptionDbContext = scope.ServiceProvider.GetRequiredService<RedemptionDbContext>();
-    redemptionDbContext.Database.EnsureCreated();
+    EnsureContextTablesCreated(redemptionDbContext, "redemptions");
 }
 
 app.UseHttpsRedirection();
@@ -59,3 +61,38 @@ app.UseHttpsRedirection();
 app.MapControllers();
 
 app.Run();
+
+static void EnsureContextTablesCreated(DbContext dbContext, string tableName)
+{
+    var databaseCreator = dbContext.GetService<IRelationalDatabaseCreator>();
+
+    if (!databaseCreator.Exists())
+        databaseCreator.Create();
+
+    if (TableExists(dbContext, tableName))
+        return;
+
+    databaseCreator.CreateTables();
+}
+
+static bool TableExists(DbContext dbContext, string tableName)
+{
+    dbContext.Database.OpenConnection();
+
+    try
+    {
+        using var command = dbContext.Database.GetDbConnection().CreateCommand();
+        command.CommandText = "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = $tableName LIMIT 1";
+
+        var tableNameParameter = command.CreateParameter();
+        tableNameParameter.ParameterName = "$tableName";
+        tableNameParameter.Value = tableName;
+        command.Parameters.Add(tableNameParameter);
+
+        return command.ExecuteScalar() is not null;
+    }
+    finally
+    {
+        dbContext.Database.CloseConnection();
+    }
+}

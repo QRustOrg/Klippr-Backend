@@ -22,6 +22,16 @@ public static class ModelBuilderExtensions
             value => RedemptionCode.From(value)
         );
 
+        var dateTimeOffsetConverter = new ValueConverter<DateTimeOffset, long>(
+            value => value.ToUnixTimeMilliseconds(),
+            value => DateTimeOffset.FromUnixTimeMilliseconds(value)
+        );
+
+        var nullableDateTimeOffsetConverter = new ValueConverter<DateTimeOffset?, long?>(
+            value => value.HasValue ? value.Value.ToUnixTimeMilliseconds() : null,
+            value => value.HasValue ? DateTimeOffset.FromUnixTimeMilliseconds(value.Value) : null
+        );
+
         builder.Entity<RedemptionAggregate>(redemption =>
         {
             redemption.ToTable("redemptions");
@@ -55,13 +65,17 @@ public static class ModelBuilderExtensions
                 .IsRequired();
 
             redemption.Property(entity => entity.GeneratedAt)
+                .HasConversion(dateTimeOffsetConverter)
                 .IsRequired();
 
-            redemption.Property(entity => entity.RedeemedAt);
+            redemption.Property(entity => entity.RedeemedAt)
+                .HasConversion(nullableDateTimeOffsetConverter);
 
-            redemption.Property(entity => entity.BlockedAt);
+            redemption.Property(entity => entity.BlockedAt)
+                .HasConversion(nullableDateTimeOffsetConverter);
 
             redemption.Property(entity => entity.ExpiresAt)
+                .HasConversion(dateTimeOffsetConverter)
                 .IsRequired();
 
             redemption.Property(entity => entity.ValidationMethod)
