@@ -38,6 +38,9 @@ var jwtExpirationMinutes = int.TryParse(builder.Configuration["Jwt:ExpirationMin
     ? configuredJwtExpirationMinutes
     : 60;
 
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddControllers();
@@ -83,25 +86,24 @@ builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.MapOpenApi();
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Klippr Backend API v1");
-        options.RoutePrefix = "swagger";
-    });
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Klippr Backend API v1");
+    options.RoutePrefix = "swagger";
+});
 
-    using var scope = app.Services.CreateScope();
+if (app.Environment.IsDevelopment())
+    app.MapOpenApi();
+
+using (var scope = app.Services.CreateScope())
+{
     EnsureDevelopmentSchema<AnalyticsDbContext>(scope.ServiceProvider);
     EnsureDevelopmentSchema<PromotionDbContext>(scope.ServiceProvider);
     EnsureDevelopmentSchema<RedemptionDbContext>(scope.ServiceProvider);
     EnsureDevelopmentSchema<AppDbContext>(scope.ServiceProvider);
-    app.Services.ApplyIamMigrations();
 }
-
-app.UseHttpsRedirection();
+app.Services.ApplyIamMigrations();
 
 app.MapControllers();
 
