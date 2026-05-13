@@ -3,7 +3,13 @@ using Klippr_Backend.Promotions.Domain.Repositories;
 using Klippr_Backend.Promotions.Domain.Services;
 using Klippr_Backend.Promotions.Infrastructure.EventPublishing;
 using Klippr_Backend.Promotions.Infrastructure.Persistence;
-using Klippr_Backend.Promotions.Interface.Facade;
+using Klippr_Backend.Redemption.Application.Services;
+using Klippr_Backend.Redemption.Domain.Repositories;
+using Klippr_Backend.Redemption.Domain.Services;
+using Klippr_Backend.Redemption.Infrastructure.EventPublishing;
+using Klippr_Backend.Redemption.Infrastructure.Persistence;
+using Klippr_Backend.Redemption.Infrastructure.Persistence.Repositories;
+using Klippr_Backend.Redemption.Interface.Facade;
 using Klippr_Backend.Shared.Infrastructure.EventPublishing;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,9 +26,15 @@ builder.Services.AddDbContext<PromotionDbContext>(options =>
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IPromotionCommandService, PromotionCommandService>();
 builder.Services.AddScoped<IPromotionQueryService, PromotionQueryService>();
-builder.Services.AddScoped<PromotionsContextFacade>();
 builder.Services.AddScoped<PromotionEventPublisher>();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+builder.Services.AddDbContext<RedemptionDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IRedemptionRepository, RedemptionRepository>();
+builder.Services.AddScoped<IRedemptionCommandService, RedemptionCommandService>();
+builder.Services.AddScoped<IRedemptionQueryService, RedemptionQueryService>();
+builder.Services.AddScoped<RedemptionContextFacade>();
+builder.Services.AddScoped<RedemptionEventPublisher>();
 
 var app = builder.Build();
 
@@ -40,6 +52,8 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var promotionDbContext = scope.ServiceProvider.GetRequiredService<PromotionDbContext>();
     promotionDbContext.Database.EnsureCreated();
+    var redemptionDbContext = scope.ServiceProvider.GetRequiredService<RedemptionDbContext>();
+    redemptionDbContext.Database.EnsureCreated();
 }
 
 app.UseHttpsRedirection();

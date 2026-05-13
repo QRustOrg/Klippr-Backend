@@ -1,4 +1,4 @@
-using Klippr_Backend.Redemption.Domain.Aggregates;
+using RedemptionAggregate = Klippr_Backend.Redemption.Domain.Aggregates.Redemption;
 using Klippr_Backend.Redemption.Domain.Commands;
 
 namespace Klippr_Backend.Redemption.Domain.Services;
@@ -14,12 +14,12 @@ public interface IRedemptionCommandService
     /// </summary>
     /// <param name="command">Datos necesarios para generar el canje.</param>
     /// <returns>Canje generado o <see langword="null"/> si no pudo completarse.</returns>
-    Task<Redemption?> Handle(RedeemPromotionCommand command);
+    Task<RedemptionAggregate?> Handle(RedeemPromotionCommand command);
 
     /// <summary>
     /// Confirma el uso de un canje existente.
     /// </summary>
     /// <param name="command">Datos necesarios para confirmar el canje.</param>
     /// <returns>Canje confirmado o <see langword="null"/> si no pudo completarse.</returns>
-    Task<Redemption?> Handle(ConfirmRedemptionCommand command);
+    Task<RedemptionAggregate?> Handle(ConfirmRedemptionCommand command);
 }

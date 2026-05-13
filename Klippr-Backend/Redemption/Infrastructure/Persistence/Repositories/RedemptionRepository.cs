@@ -76,4 +76,10 @@ public class RedemptionRepository(RedemptionDbContext dbContext) : IRedemptionRe
 
         dbContext.Redemptions.Remove(redemption);
     }
+
+    /// <inheritdoc />
+    public Task SaveChangesAsync()
+    {
+        return dbContext.SaveChangesAsync();
+    }
 }
