@@ -1,4 +1,4 @@
-namespace Klippr_Backend.Redemption.Interface.Resources;
+namespace Klippr_Backend.Redemption.Interface.Transform;
 
 /// <summary>
 /// Datos de entrada para generar un nuevo canje de promocion.

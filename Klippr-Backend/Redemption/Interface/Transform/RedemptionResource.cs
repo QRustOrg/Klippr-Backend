@@ -1,4 +1,4 @@
-namespace Klippr_Backend.Redemption.Interface.Resources;
+namespace Klippr_Backend.Redemption.Interface.Transform;
 
 /// <summary>
 /// Representa un canje en las respuestas HTTP.

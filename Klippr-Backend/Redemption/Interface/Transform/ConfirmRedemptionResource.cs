@@ -1,4 +1,4 @@
-namespace Klippr_Backend.Redemption.Interface.Resources;
+namespace Klippr_Backend.Redemption.Interface.Transform;
 
 /// <summary>
 /// Datos de entrada para confirmar el uso de un canje existente.

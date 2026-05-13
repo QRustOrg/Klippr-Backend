@@ -1,7 +1,6 @@
-using Klippr_Backend.Redemption.Interface.Resources;
 using RedemptionAggregate = Klippr_Backend.Redemption.Domain.Aggregates.Redemption;
 
-namespace Klippr_Backend.Redemption.Interface.Assemblers;
+namespace Klippr_Backend.Redemption.Interface.Transform;
 
 /// <summary>
 /// Convierte agregados de canjes en recursos de respuesta HTTP.

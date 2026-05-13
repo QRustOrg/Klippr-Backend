@@ -9,7 +9,6 @@ using Klippr_Backend.Redemption.Domain.Services;
 using Klippr_Backend.Redemption.Infrastructure.EventPublishing;
 using Klippr_Backend.Redemption.Infrastructure.Persistence;
 using Klippr_Backend.Redemption.Infrastructure.Persistence.Repositories;
-using Klippr_Backend.Redemption.Interface.Facade;
 using Klippr_Backend.Shared.Infrastructure.EventPublishing;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => options.EnableAnnotations());
 builder.Services.AddDbContext<PromotionDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
@@ -33,7 +32,6 @@ builder.Services.AddDbContext<RedemptionDbContext>(options =>
 builder.Services.AddScoped<IRedemptionRepository, RedemptionRepository>();
 builder.Services.AddScoped<IRedemptionCommandService, RedemptionCommandService>();
 builder.Services.AddScoped<IRedemptionQueryService, RedemptionQueryService>();
-builder.Services.AddScoped<RedemptionContextFacade>();
 builder.Services.AddScoped<RedemptionEventPublisher>();
 
 var app = builder.Build();

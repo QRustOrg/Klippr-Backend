@@ -1,8 +1,7 @@
 using Klippr_Backend.Redemption.Domain.Commands;
 using Klippr_Backend.Redemption.Domain.ValueObjects;
-using Klippr_Backend.Redemption.Interface.Resources;
 
-namespace Klippr_Backend.Redemption.Interface.Assemblers;
+namespace Klippr_Backend.Redemption.Interface.Transform;
 
 /// <summary>
 /// Convierte recursos de entrada HTTP en comandos de confirmacion de canje.
