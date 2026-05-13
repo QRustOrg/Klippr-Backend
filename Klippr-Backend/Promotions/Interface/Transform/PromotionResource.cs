@@ -1,4 +1,4 @@
-namespace Klippr_Backend.Promotions.Interface.Resources;
+namespace Klippr_Backend.Promotions.Interface.Transform;
 
 /// <summary>
 /// Representa una promocion en las respuestas HTTP.

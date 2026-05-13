@@ -1,8 +1,7 @@
 using Klippr_Backend.Promotions.Domain.Commands;
 using Klippr_Backend.Promotions.Domain.ValueObjects;
-using Klippr_Backend.Promotions.Interface.Resources;
 
-namespace Klippr_Backend.Promotions.Interface.Assemblers;
+namespace Klippr_Backend.Promotions.Interface.Transform;
 
 /// <summary>
 /// Convierte recursos de actualizacion en comandos de dominio para promociones.

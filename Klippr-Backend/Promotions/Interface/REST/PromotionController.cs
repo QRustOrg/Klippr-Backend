@@ -1,11 +1,10 @@
 using Klippr_Backend.Promotions.Domain.Commands;
 using Klippr_Backend.Promotions.Domain.Queries;
 using Klippr_Backend.Promotions.Domain.Services;
-using Klippr_Backend.Promotions.Interface.Assemblers;
-using Klippr_Backend.Promotions.Interface.Resources;
+using Klippr_Backend.Promotions.Interface.Transform;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Klippr_Backend.Promotions.Interface.Controllers;
+namespace Klippr_Backend.Promotions.Interface.REST;
 
 /// <summary>
 /// Controlador REST para gestionar promociones.
