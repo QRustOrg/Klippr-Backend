@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Klippr_Backend.Shared.Infrastructure.Persistence.EFC.Configuration;
 
-public class AppDbContext(DbContextOptions options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     protected override void OnConfiguring(DbContextOptionsBuilder builder)
     {

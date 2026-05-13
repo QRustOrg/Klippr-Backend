@@ -1,12 +1,14 @@
 using Klippr_Backend.Analytics.Domain.ValueObjects;
 
+namespace Klippr_Backend.Analytics.Domain.Aggregates;
+
 public class AbuseReport
 {
-    public AbuseReportId Id { get; private set; }
+    public AbuseReportId Id { get; private set; } = null!;
     public Guid ReportedEntityId { get; private set; }
     public Guid ReportedBy { get; private set; }
-    public string Reason { get; private set; }
-    public string Description { get; private set; }
+    public string Reason { get; private set; } = string.Empty;
+    public string Description { get; private set; } = string.Empty;
     public DateTime CreatedAt { get; private set; }
     public AbuseReportStatus Status { get; private set; }
 

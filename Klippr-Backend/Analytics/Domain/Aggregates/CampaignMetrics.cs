@@ -1,12 +1,10 @@
-using Klippr_Backend.Analytics.Domain.ValueObjects;
-
 namespace Klippr_Backend.Analytics.Domain.Aggregates;
 
 using Klippr_Backend.Analytics.Domain.ValueObjects;
 
 public class CampaignMetrics
 {
-    public CampaignMetricsId Id { get; private set; }
+    public CampaignMetricsId Id { get; private set; } = null!;
     public Guid CampaignId { get; private set; }
     public Guid BusinessId { get; private set; }
 

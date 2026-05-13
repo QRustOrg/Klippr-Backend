@@ -1,4 +1,4 @@
-
+using Klippr_Backend.Analytics.Domain.Aggregates;
 using Klippr_Backend.Analytics.Interface.Resources;
 using System.Linq;
 

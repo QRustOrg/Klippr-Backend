@@ -10,10 +10,10 @@ public class FavoriteRepository(AppDbContext context)
     : BaseRepository<Favorite>(context), IFavoriteRepository
 {
     public async Task<IEnumerable<Favorite>> FindByUserIdAsync(string userId) =>
-        await Context.Set<Favorite>()
+        (await Context.Set<Favorite>()
             .Where(f => f.UserId == userId)
-            .OrderByDescending(f => f.CreatedDate)
-            .ToListAsync();
+            .ToListAsync())
+        .OrderByDescending(f => f.CreatedDate);
 
     public async Task<Favorite?> FindByFavoriteIdAsync(string favoriteId) =>
         await Context.Set<Favorite>()
