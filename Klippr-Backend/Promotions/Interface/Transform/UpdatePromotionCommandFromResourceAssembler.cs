@@ -26,17 +26,9 @@ public static class UpdatePromotionCommandFromResourceAssembler
             promotionId,
             resource.Title,
             resource.Description,
-            new DiscountValue(resource.DiscountAmount, ParseDiscountType(resource.DiscountType)),
+            new DiscountValue(resource.DiscountAmount, DiscountTypeParser.Parse(resource.DiscountType)),
             new TimeFrame(resource.StartDate, resource.EndDate),
             resource.RedemptionCap
         );
-    }
-
-    private static DiscountType ParseDiscountType(string discountType)
-    {
-        if (Enum.TryParse<DiscountType>(discountType, true, out var parsedDiscountType))
-            return parsedDiscountType;
-
-        throw new ArgumentException("Discount type is invalid.", nameof(discountType));
     }
 }
