@@ -1,7 +1,6 @@
 using Klippr_Backend.Promotions.Domain.Commands;
-using Klippr_Backend.Promotions.Interface.Resources;
 
-namespace Klippr_Backend.Promotions.Interface.Assemblers;
+namespace Klippr_Backend.Promotions.Interface.Transform;
 
 /// <summary>
 /// Convierte recursos de publicacion en comandos de dominio para promociones.

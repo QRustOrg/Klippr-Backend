@@ -17,7 +17,12 @@ using Klippr_Backend.Promotions.Domain.Repositories;
 using Klippr_Backend.Promotions.Domain.Services;
 using Klippr_Backend.Promotions.Infrastructure.EventPublishing;
 using Klippr_Backend.Promotions.Infrastructure.Persistence;
-using Klippr_Backend.Promotions.Interface.Facade;
+using Klippr_Backend.Redemption.Application.Services;
+using Klippr_Backend.Redemption.Domain.Repositories;
+using Klippr_Backend.Redemption.Domain.Services;
+using Klippr_Backend.Redemption.Infrastructure.EventPublishing;
+using Klippr_Backend.Redemption.Infrastructure.Persistence;
+using Klippr_Backend.Redemption.Infrastructure.Persistence.Repositories;
 using Klippr_Backend.Shared.Domain.Repositories;
 using Klippr_Backend.Shared.Infrastructure.EventPublishing;
 using Klippr_Backend.Shared.Infrastructure.Persistence.EFC.Configuration;
@@ -44,6 +49,8 @@ builder.Services.AddDbContext<AnalyticsDbContext>(options =>
     options.UseSqlite(defaultConnectionString));
 builder.Services.AddDbContext<PromotionDbContext>(options =>
     options.UseSqlite(defaultConnectionString));
+builder.Services.AddDbContext<RedemptionDbContext>(options =>
+    options.UseSqlite(defaultConnectionString));
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(defaultConnectionString));
 
@@ -58,8 +65,12 @@ builder.Services.AddScoped<AnalyticsContextFacade>();
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IPromotionCommandService, PromotionCommandService>();
 builder.Services.AddScoped<IPromotionQueryService, PromotionQueryService>();
-builder.Services.AddScoped<PromotionsContextFacade>();
 builder.Services.AddScoped<PromotionEventPublisher>();
+
+builder.Services.AddScoped<IRedemptionRepository, RedemptionRepository>();
+builder.Services.AddScoped<IRedemptionCommandService, RedemptionCommandService>();
+builder.Services.AddScoped<IRedemptionQueryService, RedemptionQueryService>();
+builder.Services.AddScoped<RedemptionEventPublisher>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
@@ -85,6 +96,7 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     EnsureDevelopmentSchema<AnalyticsDbContext>(scope.ServiceProvider);
     EnsureDevelopmentSchema<PromotionDbContext>(scope.ServiceProvider);
+    EnsureDevelopmentSchema<RedemptionDbContext>(scope.ServiceProvider);
     EnsureDevelopmentSchema<AppDbContext>(scope.ServiceProvider);
     app.Services.ApplyIamMigrations();
 }

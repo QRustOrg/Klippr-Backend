@@ -1,8 +1,7 @@
 using Klippr_Backend.Promotions.Domain.Commands;
 using Klippr_Backend.Promotions.Domain.ValueObjects;
-using Klippr_Backend.Promotions.Interface.Resources;
 
-namespace Klippr_Backend.Promotions.Interface.Assemblers;
+namespace Klippr_Backend.Promotions.Interface.Transform;
 
 /// <summary>
 /// Convierte recursos de creacion en comandos de dominio para promociones.
@@ -27,17 +26,9 @@ public static class CreatePromotionCommandFromResourceAssembler
             resource.BusinessId,
             resource.Title,
             resource.Description,
-            new DiscountValue(resource.DiscountAmount, ParseDiscountType(resource.DiscountType)),
+            new DiscountValue(resource.DiscountAmount, DiscountTypeParser.Parse(resource.DiscountType)),
             new TimeFrame(resource.StartDate, resource.EndDate),
             resource.RedemptionCap
         );
-    }
-
-    private static DiscountType ParseDiscountType(string discountType)
-    {
-        if (Enum.TryParse<DiscountType>(discountType, true, out var parsedDiscountType))
-            return parsedDiscountType;
-
-        throw new ArgumentException("Discount type is invalid.", nameof(discountType));
     }
 }

@@ -1,4 +1,4 @@
-namespace Klippr_Backend.Promotions.Interface.Resources;
+namespace Klippr_Backend.Promotions.Interface.Transform;
 
 /// <summary>
 /// Representa los datos temporales requeridos para publicar una promocion.
