@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Klippr-Backend", "Klippr-Backend\Klippr-Backend.csproj", "{C97B09A6-6BFD-4496-ABA1-C02270715444}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Klippr-Backend", "Klippr-Backend.csproj", "{C97B09A6-6BFD-4496-ABA1-C02270715444}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

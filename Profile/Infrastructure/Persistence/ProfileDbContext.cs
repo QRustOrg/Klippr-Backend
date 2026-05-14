@@ -75,6 +75,7 @@ public class ProfileDbContext : DbContext
                 savingsBuilder.Property(s => s.TotalSavings).HasColumnName("SavingsTotalSavings");
                 savingsBuilder.Property(s => s.PromotionsUsed).HasColumnName("SavingsPromotionsUsed");
                 savingsBuilder.Property(s => s.PromotionsSaved).HasColumnName("SavingsPromotionsSaved");
+                savingsBuilder.Property(s => s.LastUpdated).HasColumnName("SavingsLastUpdated");
             });
         });
     }
@@ -109,8 +110,14 @@ public class ProfileDbContext : DbContext
                 .HasMaxLength(500);
 
             entity.Property(bp => bp.VerificationDocumentUrl)
-                .HasColumnName("DocumentUrl")
+                .HasColumnName("VerificationDocumentUrl")
                 .HasMaxLength(500);
+
+            entity.Property(bp => bp.VerificationSubmittedAt)
+                .HasColumnName("VerificationSubmittedAt");
+
+            entity.Property(bp => bp.VerificationApprovedAt)
+                .HasColumnName("VerificationApprovedAt");
 
             entity.Property(bp => bp.CreatedAt)
                 .HasColumnName("CreatedAt")

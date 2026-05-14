@@ -1,5 +1,6 @@
 using Klippr_Backend.Profile.Application.OutboundServices;
 using Klippr_Backend.Profile.Domain.Events;
+using Microsoft.Extensions.Logging;
 
 namespace Klippr_Backend.Profile.Infrastructure.EventPublishing;
 
@@ -35,8 +36,25 @@ public class ProfileEventPublisher : IEventPublisher
         }
     }
 
-    public Task PublishMultipleAsync(IEnumerable<DomainEvent> events, CancellationToken cancellationToken = default)
+    public async Task PublishMultipleAsync(IEnumerable<DomainEvent> events, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (events == null)
+            throw new ArgumentNullException(nameof(events));
+
+        try
+        {
+            var eventsList = events.ToList();
+            _logger.LogInformation($"Publishing {eventsList.Count} events");
+
+            var tasks = eventsList.Select(evt => PublishAsync(evt, cancellationToken));
+            await Task.WhenAll(tasks);
+
+            _logger.LogInformation($"All {eventsList.Count} events published successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to publish multiple events: {ex.Message}");
+            throw;
+        }
     }
 }

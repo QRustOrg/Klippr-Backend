@@ -40,7 +40,7 @@ public class ConsumerProfileResourceFromEntityAssembler
             {
                 TotalSavings = profile.SavingsStatistics.TotalSavings,
                 TransactionCount = profile.SavingsStatistics.PromotionsUsed,
-                AverageTransactionValue = 0
+                AverageTransactionValue = profile.SavingsStatistics.PromotionsSaved
             };
         }
 

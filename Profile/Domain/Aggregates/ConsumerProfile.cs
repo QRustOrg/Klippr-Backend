@@ -16,7 +16,11 @@ public class ConsumerProfile
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
-    private ConsumerProfile() { }
+    private ConsumerProfile()
+    {
+        FirstName = string.Empty;
+        LastName = string.Empty;
+    }
 
     public static ConsumerProfile Create(Guid userId, string firstName, string lastName, string? phoneNumber = null)
     {

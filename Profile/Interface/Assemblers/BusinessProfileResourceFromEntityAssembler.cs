@@ -28,7 +28,8 @@ public class BusinessProfileResourceFromEntityAssembler
         {
             resource.Category = new BusinessCategoryResource
             {
-                Name = profile.Category.Value
+                Name = profile.Category.Value,
+                Description = profile.Category.Value
             };
         }
 

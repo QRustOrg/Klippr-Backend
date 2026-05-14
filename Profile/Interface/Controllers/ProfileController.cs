@@ -1,3 +1,5 @@
+using Klippr_Backend.Profile.Application.QueryServices;
+using Klippr_Backend.Profile.Application.Services;
 using Klippr_Backend.Profile.Domain.Commands;
 using Klippr_Backend.Profile.Domain.Queries;
 using Klippr_Backend.Profile.Domain.Services;
@@ -5,6 +7,7 @@ using Klippr_Backend.Profile.Interface.Assemblers;
 using Klippr_Backend.Profile.Interface.Resources;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Klippr_Backend.Profile.Interface.Controllers;
 

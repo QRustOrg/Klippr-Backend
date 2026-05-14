@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 
 namespace Klippr_Backend.Profile.Infrastructure.Pipeline;

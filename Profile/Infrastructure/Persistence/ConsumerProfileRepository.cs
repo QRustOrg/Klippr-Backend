@@ -1,5 +1,6 @@
 using Klippr_Backend.Profile.Domain.Aggregates;
 using Klippr_Backend.Profile.Domain.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace Klippr_Backend.Profile.Infrastructure.Persistence;
 
@@ -25,20 +26,7 @@ public class ConsumerProfileRepository : IConsumerProfileRepository
         if (userId == Guid.Empty)
             throw new ArgumentException("User ID cannot be empty.", nameof(userId));
 
-        return _context.ConsumerProfiles.FirstOrDefault(cp => cp.UserId == userId);
-    }
-
-    public async Task<IEnumerable<ConsumerProfile>> GetAllAsync(int pageNumber = 1, int pageSize = 10, CancellationToken cancellationToken = default)
-    {
-        if (pageNumber < 1)
-            throw new ArgumentException("Page number must be greater than 0.", nameof(pageNumber));
-        if (pageSize < 1)
-            throw new ArgumentException("Page size must be greater than 0.", nameof(pageSize));
-
-        return _context.ConsumerProfiles
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .AsEnumerable();
+        return await _context.ConsumerProfiles.FirstOrDefaultAsync(cp => cp.UserId == userId, cancellationToken);
     }
 
     public async Task<ConsumerProfile> AddAsync(ConsumerProfile aggregate, CancellationToken cancellationToken = default)
@@ -63,8 +51,18 @@ public class ConsumerProfileRepository : IConsumerProfileRepository
         return aggregate;
     }
 
-    public Task<bool> DeleteAsync(Guid profileId, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (profileId == Guid.Empty)
+            throw new ArgumentException("Profile ID cannot be empty.", nameof(profileId));
+
+        var profile = await _context.ConsumerProfiles.FindAsync(new object[] { profileId }, cancellationToken: cancellationToken);
+        if (profile == null)
+            return false;
+
+        _context.ConsumerProfiles.Remove(profile);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return true;
     }
 }

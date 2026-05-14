@@ -1,5 +1,6 @@
 using Klippr_Backend.Profile.Domain.Aggregates;
 using Klippr_Backend.Profile.Domain.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace Klippr_Backend.Profile.Infrastructure.Persistence;
 
@@ -25,20 +26,7 @@ public class BusinessProfileRepository : IBusinessProfileRepository
         if (userId == Guid.Empty)
             throw new ArgumentException("User ID cannot be empty.", nameof(userId));
 
-        return _context.BusinessProfiles.FirstOrDefault(bp => bp.UserId == userId);
-    }
-
-    public async Task<IEnumerable<BusinessProfile>> GetAllAsync(int pageNumber = 1, int pageSize = 10, CancellationToken cancellationToken = default)
-    {
-        if (pageNumber < 1)
-            throw new ArgumentException("Page number must be greater than 0.", nameof(pageNumber));
-        if (pageSize < 1)
-            throw new ArgumentException("Page size must be greater than 0.", nameof(pageSize));
-
-        return _context.BusinessProfiles
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .AsEnumerable();
+        return await _context.BusinessProfiles.FirstOrDefaultAsync(bp => bp.UserId == userId, cancellationToken);
     }
 
     public async Task<IEnumerable<BusinessProfile>> GetByVerificationStatusAsync(string status, int pageNumber = 1, int pageSize = 10, CancellationToken cancellationToken = default)
@@ -50,11 +38,11 @@ public class BusinessProfileRepository : IBusinessProfileRepository
         if (pageSize < 1)
             throw new ArgumentException("Page size must be greater than 0.", nameof(pageSize));
 
-        return _context.BusinessProfiles
+        return await _context.BusinessProfiles
             .Where(bp => bp.VerificationStatus.Value == status)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .AsEnumerable();
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<BusinessProfile> AddAsync(BusinessProfile aggregate, CancellationToken cancellationToken = default)
@@ -79,8 +67,18 @@ public class BusinessProfileRepository : IBusinessProfileRepository
         return aggregate;
     }
 
-    public Task<bool> DeleteAsync(Guid profileId, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        if (profileId == Guid.Empty)
+            throw new ArgumentException("Profile ID cannot be empty.", nameof(profileId));
+
+        var profile = await _context.BusinessProfiles.FindAsync(new object[] { profileId }, cancellationToken: cancellationToken);
+        if (profile == null)
+            return false;
+
+        _context.BusinessProfiles.Remove(profile);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return true;
     }
 }
