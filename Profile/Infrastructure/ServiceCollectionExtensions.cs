@@ -6,15 +6,15 @@ using Domain.Services;
 using Infrastructure.EventPublishing;
 using Infrastructure.Persistence;
 using Infrastructure.Verification;
-using Interface.Facade;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Infrastructure;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddProfileServices(this IServiceCollection services, string connectionString)
+    public static IServiceCollection AddProfileServices(this IServiceCollection services, string connectionString, IConfiguration? configuration = null)
     {
         if (string.IsNullOrWhiteSpace(connectionString))
             throw new ArgumentException("Connection string cannot be empty.", nameof(connectionString));
@@ -37,14 +37,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IEventPublisher, ProfileEventPublisher>();
         services.AddScoped<IRatingAggregator, RatingAggregatorService>();
 
-        // Register Infrastructure Services
-        services.AddScoped<DocumentStorageService>();
-
-        // Register Facade
-        services.AddScoped<ProfileContextFacade>();
-
         // Register HTTP Client Factory for document storage
-        services.AddHttpClient<DocumentStorageService>();
+        services.AddHttpClient();
+
+        // Register Infrastructure Services with configuration
+        var storageBaseUrl = configuration?.GetValue<string>("Storage:BaseUrl") ?? "https://localhost:5001/storage";
+        services.AddScoped(provider => 
+            new DocumentStorageService(
+                provider.GetRequiredService<IHttpClientFactory>(), 
+                storageBaseUrl));
 
         return services;
     }

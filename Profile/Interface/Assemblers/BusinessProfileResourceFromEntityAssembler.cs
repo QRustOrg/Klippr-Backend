@@ -18,7 +18,7 @@ public class BusinessProfileResourceFromEntityAssembler
             TaxId = profile.TaxId,
             Description = profile.Description,
             VerificationStatus = profile.VerificationStatus.Value,
-            DocumentUrl = profile.DocumentUrl,
+            DocumentUrl = profile.VerificationDocumentUrl,
             CreatedAt = profile.CreatedAt,
             UpdatedAt = profile.UpdatedAt,
             IsActive = profile.IsActive
@@ -28,8 +28,8 @@ public class BusinessProfileResourceFromEntityAssembler
         {
             resource.Category = new BusinessCategoryResource
             {
-                Name = profile.Category.Name,
-                Description = profile.Category.Description
+                Name = profile.Category.Value,
+                Description = profile.Category.Value
             };
         }
 
@@ -41,7 +41,7 @@ public class BusinessProfileResourceFromEntityAssembler
                 City = profile.Location.City,
                 State = profile.Location.State,
                 Country = profile.Location.Country,
-                PostalCode = profile.Location.PostalCode
+                PostalCode = profile.Location.ZipCode
             };
         }
 

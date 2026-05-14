@@ -1,9 +1,11 @@
 using Application.QueryServices;
 using Domain.Queries;
+using Domain.Services;
 using Interface.Assemblers;
 using Interface.Resources;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Interface.Controllers;
 

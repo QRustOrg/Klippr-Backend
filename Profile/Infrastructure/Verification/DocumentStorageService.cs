@@ -1,4 +1,5 @@
 using System.Net.Http;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Verification;
 

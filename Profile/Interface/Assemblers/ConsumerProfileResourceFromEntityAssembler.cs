@@ -30,7 +30,7 @@ public class ConsumerProfileResourceFromEntityAssembler
                 City = profile.Location.City,
                 State = profile.Location.State,
                 Country = profile.Location.Country,
-                PostalCode = profile.Location.PostalCode
+                PostalCode = profile.Location.ZipCode
             };
         }
 
@@ -39,8 +39,8 @@ public class ConsumerProfileResourceFromEntityAssembler
             resource.SavingsStatistics = new SavingsStatisticsResource
             {
                 TotalSavings = profile.SavingsStatistics.TotalSavings,
-                TransactionCount = profile.SavingsStatistics.TransactionCount,
-                AverageTransactionValue = profile.SavingsStatistics.AverageTransactionValue
+                TransactionCount = profile.SavingsStatistics.PromotionsUsed,
+                AverageTransactionValue = profile.SavingsStatistics.PromotionsSaved
             };
         }
 

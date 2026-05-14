@@ -65,14 +65,17 @@ public class ProfileDbContext : DbContext
                 locationBuilder.Property(l => l.City).HasColumnName("LocationCity").HasMaxLength(100);
                 locationBuilder.Property(l => l.State).HasColumnName("LocationState").HasMaxLength(100);
                 locationBuilder.Property(l => l.Country).HasColumnName("LocationCountry").HasMaxLength(100);
-                locationBuilder.Property(l => l.PostalCode).HasColumnName("LocationPostalCode").HasMaxLength(20);
+                locationBuilder.Property(l => l.ZipCode).HasColumnName("LocationZipCode").HasMaxLength(20);
+                locationBuilder.Property(l => l.Latitude).HasColumnName("LocationLatitude");
+                locationBuilder.Property(l => l.Longitude).HasColumnName("LocationLongitude");
             });
 
             entity.OwnsOne(cp => cp.SavingsStatistics, savingsBuilder =>
             {
                 savingsBuilder.Property(s => s.TotalSavings).HasColumnName("SavingsTotalSavings");
-                savingsBuilder.Property(s => s.TransactionCount).HasColumnName("SavingsTransactionCount");
-                savingsBuilder.Property(s => s.AverageTransactionValue).HasColumnName("SavingsAverageTransactionValue");
+                savingsBuilder.Property(s => s.PromotionsUsed).HasColumnName("SavingsPromotionsUsed");
+                savingsBuilder.Property(s => s.PromotionsSaved).HasColumnName("SavingsPromotionsSaved");
+                savingsBuilder.Property(s => s.LastUpdated).HasColumnName("SavingsLastUpdated");
             });
         });
     }
@@ -106,9 +109,15 @@ public class ProfileDbContext : DbContext
                 .HasColumnName("Description")
                 .HasMaxLength(500);
 
-            entity.Property(bp => bp.DocumentUrl)
-                .HasColumnName("DocumentUrl")
+            entity.Property(bp => bp.VerificationDocumentUrl)
+                .HasColumnName("VerificationDocumentUrl")
                 .HasMaxLength(500);
+
+            entity.Property(bp => bp.VerificationSubmittedAt)
+                .HasColumnName("VerificationSubmittedAt");
+
+            entity.Property(bp => bp.VerificationApprovedAt)
+                .HasColumnName("VerificationApprovedAt");
 
             entity.Property(bp => bp.CreatedAt)
                 .HasColumnName("CreatedAt")
@@ -124,8 +133,7 @@ public class ProfileDbContext : DbContext
 
             entity.OwnsOne(bp => bp.Category, categoryBuilder =>
             {
-                categoryBuilder.Property(c => c.Name).HasColumnName("CategoryName").HasMaxLength(100);
-                categoryBuilder.Property(c => c.Description).HasColumnName("CategoryDescription").HasMaxLength(300);
+                categoryBuilder.Property(c => c.Value).HasColumnName("CategoryValue").HasMaxLength(100);
             });
 
             entity.OwnsOne(bp => bp.Location, locationBuilder =>
@@ -134,7 +142,9 @@ public class ProfileDbContext : DbContext
                 locationBuilder.Property(l => l.City).HasColumnName("LocationCity").HasMaxLength(100);
                 locationBuilder.Property(l => l.State).HasColumnName("LocationState").HasMaxLength(100);
                 locationBuilder.Property(l => l.Country).HasColumnName("LocationCountry").HasMaxLength(100);
-                locationBuilder.Property(l => l.PostalCode).HasColumnName("LocationPostalCode").HasMaxLength(20);
+                locationBuilder.Property(l => l.ZipCode).HasColumnName("LocationZipCode").HasMaxLength(20);
+                locationBuilder.Property(l => l.Latitude).HasColumnName("LocationLatitude");
+                locationBuilder.Property(l => l.Longitude).HasColumnName("LocationLongitude");
             });
 
             entity.OwnsOne(bp => bp.VerificationStatus, statusBuilder =>

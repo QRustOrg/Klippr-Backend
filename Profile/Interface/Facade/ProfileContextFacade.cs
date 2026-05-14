@@ -3,6 +3,7 @@ using Application.Services;
 using Domain.Aggregates;
 using Domain.Commands;
 using Domain.Queries;
+using Domain.Services;
 
 namespace Interface.Facade;
 

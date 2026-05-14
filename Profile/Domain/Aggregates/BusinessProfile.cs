@@ -20,7 +20,13 @@ public class BusinessProfile
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
-    private BusinessProfile() { }
+    private BusinessProfile()
+    {
+        BusinessName = string.Empty;
+        TaxId = string.Empty;
+        Category = null!; // Entity Framework will set this during deserialization
+        VerificationStatus = VerificationStatus.None;
+    }
 
     public static BusinessProfile Create(Guid userId, string businessName, string taxId, BusinessCategory category)
     {

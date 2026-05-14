@@ -1,5 +1,6 @@
 using Application.OutboundServices;
 using Domain.Events;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.EventPublishing;
 
@@ -31,6 +32,28 @@ public class ProfileEventPublisher : IEventPublisher
         catch (Exception ex)
         {
             _logger.LogError($"Failed to publish event: {domainEvent.GetType().Name} - {ex.Message}");
+            throw;
+        }
+    }
+
+    public async Task PublishMultipleAsync(IEnumerable<DomainEvent> events, CancellationToken cancellationToken = default)
+    {
+        if (events == null)
+            throw new ArgumentNullException(nameof(events));
+
+        try
+        {
+            var eventsList = events.ToList();
+            _logger.LogInformation($"Publishing {eventsList.Count} events");
+
+            var tasks = eventsList.Select(evt => PublishAsync(evt, cancellationToken));
+            await Task.WhenAll(tasks);
+
+            _logger.LogInformation($"All {eventsList.Count} events published successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to publish multiple events: {ex.Message}");
             throw;
         }
     }
