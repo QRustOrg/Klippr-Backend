@@ -66,6 +66,8 @@ public class ProfileDbContext : DbContext
                 locationBuilder.Property(l => l.State).HasColumnName("LocationState").HasMaxLength(100);
                 locationBuilder.Property(l => l.Country).HasColumnName("LocationCountry").HasMaxLength(100);
                 locationBuilder.Property(l => l.ZipCode).HasColumnName("LocationZipCode").HasMaxLength(20);
+                locationBuilder.Property(l => l.Latitude).HasColumnName("LocationLatitude");
+                locationBuilder.Property(l => l.Longitude).HasColumnName("LocationLongitude");
             });
 
             entity.OwnsOne(cp => cp.SavingsStatistics, savingsBuilder =>
@@ -134,6 +136,8 @@ public class ProfileDbContext : DbContext
                 locationBuilder.Property(l => l.State).HasColumnName("LocationState").HasMaxLength(100);
                 locationBuilder.Property(l => l.Country).HasColumnName("LocationCountry").HasMaxLength(100);
                 locationBuilder.Property(l => l.ZipCode).HasColumnName("LocationZipCode").HasMaxLength(20);
+                locationBuilder.Property(l => l.Latitude).HasColumnName("LocationLatitude");
+                locationBuilder.Property(l => l.Longitude).HasColumnName("LocationLongitude");
             });
 
             entity.OwnsOne(bp => bp.VerificationStatus, statusBuilder =>
