@@ -7,6 +7,8 @@ public class SavingsStatistics : IEquatable<SavingsStatistics>
     public int PromotionsSaved { get; }
     public DateTime LastUpdated { get; }
 
+    private SavingsStatistics() { }
+
     private SavingsStatistics(decimal totalSavings, int promotionsUsed, int promotionsSaved, DateTime lastUpdated)
     {
         TotalSavings = totalSavings;
