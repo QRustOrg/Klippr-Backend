@@ -12,6 +12,8 @@ using Klippr_Backend.Favorites.Domain.Services;
 using Klippr_Backend.Favorites.Infrastructure.Persistence;
 using Klippr_Backend.Favorites.Interface.Facade;
 using Klippr_Backend.IAM.Infrastructure;
+using Klippr_Backend.Profile.Infrastructure;
+using Klippr_Backend.Profile.Infrastructure.Persistence;
 using Klippr_Backend.Promotions.Application.Services;
 using Klippr_Backend.Promotions.Domain.Repositories;
 using Klippr_Backend.Promotions.Domain.Services;
@@ -58,6 +60,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(defaultConnectionString));
 
 builder.Services.AddIamServices(defaultConnectionString, jwtSecretKey, jwtExpirationMinutes);
+builder.Services.AddProfileServices(defaultConnectionString);
 
 builder.Services.AddScoped<IAbuseReportRepository, AbuseReportRepository>();
 builder.Services.AddScoped<ICampaignMetricsRepository, CampaignMetricsRepository>();
@@ -102,6 +105,7 @@ using (var scope = app.Services.CreateScope())
     EnsureDevelopmentSchema<PromotionDbContext>(scope.ServiceProvider);
     EnsureDevelopmentSchema<RedemptionDbContext>(scope.ServiceProvider);
     EnsureDevelopmentSchema<AppDbContext>(scope.ServiceProvider);
+    EnsureDevelopmentSchema<ProfileDbContext>(scope.ServiceProvider);
 }
 app.Services.ApplyIamMigrations();
 

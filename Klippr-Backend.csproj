@@ -9,6 +9,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Remove="Profile/Program.example.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
         <PackageReference Include="EntityFrameworkCore.CreatedUpdatedDate" Version="8.0.0" />
         <PackageReference Include="Humanizer" Version="3.0.10" />
