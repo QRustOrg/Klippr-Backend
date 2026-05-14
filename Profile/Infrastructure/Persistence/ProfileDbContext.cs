@@ -77,6 +77,17 @@ public class ProfileDbContext : DbContext
                 savingsBuilder.Property(s => s.PromotionsSaved).HasColumnName("SavingsPromotionsSaved");
                 savingsBuilder.Property(s => s.LastUpdated).HasColumnName("SavingsLastUpdated");
             });
+
+            entity.OwnsOne(cp => cp.Rating, ratingBuilder =>
+            {
+                ratingBuilder.Property(r => r.AverageRating).HasColumnName("RatingAverage");
+                ratingBuilder.Property(r => r.TotalReviews).HasColumnName("RatingTotalReviews");
+                ratingBuilder.Property(r => r.FiveStarCount).HasColumnName("RatingFiveStarCount");
+                ratingBuilder.Property(r => r.FourStarCount).HasColumnName("RatingFourStarCount");
+                ratingBuilder.Property(r => r.ThreeStarCount).HasColumnName("RatingThreeStarCount");
+                ratingBuilder.Property(r => r.TwoStarCount).HasColumnName("RatingTwoStarCount");
+                ratingBuilder.Property(r => r.OneStarCount).HasColumnName("RatingOneStarCount");
+            });
         });
     }
 
