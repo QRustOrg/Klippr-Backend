@@ -1,8 +1,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY . .
-RUN dotnet restore "Klippr-Backend/Klippr-Backend.csproj"
-RUN dotnet publish "Klippr-Backend/Klippr-Backend.csproj" -c Release -o /app/publish
+RUN dotnet restore "Klippr-Backend.csproj"
+RUN dotnet publish "Klippr-Backend.csproj" -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
