@@ -24,7 +24,8 @@ public class UserRepository : IUserRepository
             throw new ArgumentException("Email cannot be null or empty.", nameof(email));
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
-        return await _context.Users.FirstOrDefaultAsync(u => u.Email.Value == normalizedEmail, cancellationToken);
+        return await _context.Users
+            .FirstOrDefaultAsync(u => EF.Property<string>(u, "email") == normalizedEmail, cancellationToken);
     }
 
     public async Task<IEnumerable<User>> GetAllAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
@@ -86,6 +87,7 @@ public class UserRepository : IUserRepository
             throw new ArgumentException("Email cannot be null or empty.", nameof(email));
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
-        return await _context.Users.AnyAsync(u => u.Email.Value == normalizedEmail, cancellationToken);
+        return await _context.Users
+            .AnyAsync(u => EF.Property<string>(u, "email") == normalizedEmail, cancellationToken);
     }
 }
