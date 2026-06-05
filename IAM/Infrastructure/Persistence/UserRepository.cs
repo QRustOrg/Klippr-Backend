@@ -21,11 +21,13 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(email))
+            
             throw new ArgumentException("Email cannot be null or empty.", nameof(email));
+            
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
         return await _context.Users
-            .FirstOrDefaultAsync(u => EF.Property<string>(u, "email") == normalizedEmail, cancellationToken);
+            .FirstOrDefaultAsync(u => EF.Property<string>(u, "Email") == normalizedEmail, cancellationToken);
     }
 
     public async Task<IEnumerable<User>> GetAllAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
@@ -55,7 +57,7 @@ public class UserRepository : IUserRepository
 
         var normalizedRole = role.Trim().ToUpperInvariant();
         return await _context.Users
-            .Where(u => u.Role.Value == normalizedRole)
+            .Where(u => EF.Property<string>(u, "Role") == normalizedRole)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -88,6 +90,6 @@ public class UserRepository : IUserRepository
 
         var normalizedEmail = email.Trim().ToLowerInvariant();
         return await _context.Users
-            .AnyAsync(u => EF.Property<string>(u, "email") == normalizedEmail, cancellationToken);
+            .AnyAsync(u => EF.Property<string>(u, "Email") == normalizedEmail, cancellationToken);
     }
 }
