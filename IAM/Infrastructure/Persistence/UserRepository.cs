@@ -1,6 +1,7 @@
 using Klippr_Backend.IAM.Domain.Aggregates;
 using Klippr_Backend.IAM.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Klippr_Backend.IAM.Domain.ValueObjects;
 
 namespace Klippr_Backend.IAM.Infrastructure.Persistence;
 
@@ -21,13 +22,11 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(email))
-            
             throw new ArgumentException("Email cannot be null or empty.", nameof(email));
-            
 
-        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var emailVo = Email.Create(email);
         return await _context.Users
-            .FirstOrDefaultAsync(u => EF.Property<string>(u, "Email") == normalizedEmail, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email == emailVo, cancellationToken);
     }
 
     public async Task<IEnumerable<User>> GetAllAsync(int pageNumber, int pageSize, CancellationToken cancellationToken = default)
@@ -55,9 +54,9 @@ public class UserRepository : IUserRepository
         if (pageSize < 1)
             throw new ArgumentException("Page size must be greater than 0.", nameof(pageSize));
 
-        var normalizedRole = role.Trim().ToUpperInvariant();
+        var roleVo = Role.Create(role);
         return await _context.Users
-            .Where(u => EF.Property<string>(u, "Role") == normalizedRole)
+            .Where(u => u.Role == roleVo)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -88,8 +87,8 @@ public class UserRepository : IUserRepository
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentException("Email cannot be null or empty.", nameof(email));
 
-        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var emailVo = Email.Create(email);
         return await _context.Users
-            .AnyAsync(u => EF.Property<string>(u, "Email") == normalizedEmail, cancellationToken);
+            .AnyAsync(u => u.Email == emailVo, cancellationToken);
     }
 }
