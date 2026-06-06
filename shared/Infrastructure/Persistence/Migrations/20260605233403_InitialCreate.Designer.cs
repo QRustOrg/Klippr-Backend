@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Klippr_Backend.shared.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("InitialCreate")]
+    [Migration("20260605233403_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

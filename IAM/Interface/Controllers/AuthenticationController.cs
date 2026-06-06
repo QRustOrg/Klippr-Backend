@@ -4,11 +4,13 @@ using Klippr_Backend.IAM.Domain.Services;
 using Klippr_Backend.IAM.Interface.Assemblers;
 using Klippr_Backend.IAM.Interface.Resources;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Klippr_Backend.IAM.Interface.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("auth")]
 public class AuthenticationController : ControllerBase
 {
     private readonly IUserCommandService _userCommandService;
@@ -47,13 +49,15 @@ public class AuthenticationController : ControllerBase
 
             return Ok(response);
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            return BadRequest(new { message = ex.Message });
+            // Generic response to avoid user enumeration / credential probing.
+            return Unauthorized(new { message = "Invalid email or password." });
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return Unauthorized(new { message = ex.Message });
+            // Generic response to avoid user enumeration / credential probing.
+            return Unauthorized(new { message = "Invalid email or password." });
         }
         catch (Exception)
         {

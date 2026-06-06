@@ -22,7 +22,7 @@ public static class ServiceCollectionExtensions
 
         // Register DbContext
         services.AddDbContext<ProfileDbContext>(options =>
-            options.UseSqlite(connectionString));
+            options.UseMySQL(connectionString));
 
         // Register Repositories
         services.AddScoped<IConsumerProfileRepository, ConsumerProfileRepository>();

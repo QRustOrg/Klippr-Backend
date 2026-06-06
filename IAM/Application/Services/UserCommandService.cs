@@ -31,8 +31,7 @@ public class UserCommandService : IUserCommandService
         if (!existingUser.IsActive)
             throw new InvalidOperationException("User account is inactive.");
 
-        var passwordHash = _hashingService.Hash(command.Password);
-        if (!existingUser.IsPasswordValid(passwordHash))
+        if (!_hashingService.Verify(command.Password, existingUser.PasswordHash))
             throw new InvalidOperationException("Invalid credentials.");
 
         return existingUser;
