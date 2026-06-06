@@ -45,4 +45,15 @@ public interface IPromotionQueryService
         GetActivePromotionsQuery query,
         CancellationToken cancellationToken = default
     );
+
+    /// <summary>
+    /// Obtiene todas las promociones sin filtrar por estado ni vigencia.
+    /// </summary>
+    /// <param name="query">Query que representa la consulta de todas las promociones.</param>
+    /// <param name="cancellationToken">Token para cancelar la operación asincrónica.</param>
+    /// <returns>Colección completa de promociones en cualquier estado.</returns>
+    Task<IReadOnlyList<Promotion>> GetAllAsync(
+        GetAllPromotionsQuery query,
+        CancellationToken cancellationToken = default
+    );
 }

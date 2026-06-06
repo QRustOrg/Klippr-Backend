@@ -60,6 +60,25 @@ public class PromotionController(
     }
 
     /// <summary>
+    /// Obtiene todas las promociones sin filtrar por estado.
+    /// </summary>
+    /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
+    /// <returns>Resultado HTTP con todas las promociones.</returns>
+    [HttpGet]
+    [SwaggerOperation(
+        Summary = "Listar todas las promociones",
+        Description = "Retorna todas las promociones del sistema en cualquier estado (borrador, publicada, cancelada).",
+        OperationId = "GetAllPromotions")]
+    public async Task<IActionResult> GetAllAsync(CancellationToken cancellationToken)
+    {
+        var promotions = await promotionQueryService
+            .GetAllAsync(new GetAllPromotionsQuery(), cancellationToken)
+            .ConfigureAwait(false);
+
+        return Ok(PromotionResourceFromEntityAssembler.ToResources(promotions));
+    }
+
+    /// <summary>
     /// Obtiene una promocion por su identificador.
     /// </summary>
     /// <param name="promotionId">Identificador unico de la promocion.</param>
