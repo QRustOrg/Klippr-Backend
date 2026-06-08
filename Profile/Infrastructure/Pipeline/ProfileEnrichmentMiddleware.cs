@@ -30,7 +30,7 @@ public class ProfileEnrichmentMiddleware
             await _next(context);
 
             // Enrich response with additional headers
-            context.Response.Headers.Add("X-Processing-Time", DateTime.UtcNow.Ticks.ToString());
+            context.Response.Headers["X-Processing-Time"] = DateTime.UtcNow.Ticks.ToString();
             _logger.LogInformation($"Profile Response: {context.Response.StatusCode}");
         }
         catch (Exception ex)
