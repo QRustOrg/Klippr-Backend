@@ -33,6 +33,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 var defaultConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -53,7 +54,26 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen(options => options.EnableAnnotations());
+builder.Services.AddSwaggerGen(options =>
+{
+    options.EnableAnnotations();
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Klippr Backend API", Version = "v1" });
+    options.SwaggerDoc("v2", new OpenApiInfo { Title = "Klippr Backend API", Version = "v2" });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization. Pega solo el token (sin 'Bearer ')."
+    });
+    options.AddSecurityRequirement(doc => new OpenApiSecurityRequirement
+    {
+        { new OpenApiSecuritySchemeReference("Bearer", doc), new List<string>() }
+    });
+});
 
 builder.Services.AddDbContext<AnalyticsDbContext>(options =>
     options.UseMySQL(defaultConnectionString));
@@ -91,7 +111,6 @@ builder.Services.AddScoped<IFavoritesContextFacade, FavoritesContextFacade>();
 
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
-// Authentication & Authorization (JWT Bearer). Validation parameters must match TokenService.
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -109,8 +128,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 builder.Services.AddAuthorization();
 
-// Rate limiting to protect authentication endpoints from brute force / enumeration.
-// Partitioned per client IP so one client cannot lock out others.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -127,7 +144,6 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
-// Apply database migrations on startup so the schema is created/updated on a persistent database.
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -139,14 +155,13 @@ using (var scope = app.Services.CreateScope())
 }
 app.Services.ApplyIamMigrations();
 
-// Configure the HTTP request pipeline.
-// Swagger/OpenAPI is only exposed in Development to avoid leaking the API surface in production.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Klippr Backend API v1");
+        options.SwaggerEndpoint("/swagger/v2/swagger.json", "Klippr Backend API v2");
         options.RoutePrefix = "swagger";
     });
     app.MapOpenApi();
