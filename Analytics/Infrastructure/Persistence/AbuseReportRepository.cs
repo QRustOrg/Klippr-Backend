@@ -35,4 +35,17 @@ public class AbuseReportRepository : IAbuseReportRepository
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
     }
+
+    public async Task<AbuseReport?> FindByIdAsync(Guid reportId)
+    {
+        var id = new AbuseReportId(reportId);
+        return await _context.AbuseReports
+            .FirstOrDefaultAsync(r => r.Id == id);
+    }
+
+    public async Task UpdateAsync(AbuseReport report)
+    {
+        _context.AbuseReports.Update(report);
+        await _context.SaveChangesAsync();
+    }
 }

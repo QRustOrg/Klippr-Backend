@@ -9,4 +9,6 @@ public interface IUserCommandService
     Task<User> SignUpConsumerAsync(SignUpConsumerCommand command, CancellationToken cancellationToken = default);
     Task<User> SignUpBusinessAsync(SignUpBusinessCommand command, CancellationToken cancellationToken = default);
     Task<User> SignUpAdminAsync(SignUpAdminCommand command, CancellationToken cancellationToken = default);
+    Task<User> DeactivateUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<User> ActivateUserAsync(Guid userId, CancellationToken cancellationToken = default);
 }

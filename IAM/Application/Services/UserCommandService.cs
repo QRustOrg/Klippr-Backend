@@ -88,6 +88,32 @@ public class UserCommandService : IUserCommandService
         return createdUser;
     }
 
+    public async Task<User> DeactivateUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("User ID cannot be empty.", nameof(userId));
+
+        var user = await _repository.GetByIdAsync(userId, cancellationToken);
+        if (user == null)
+            throw new InvalidOperationException("User not found.");
+
+        user.Deactivate();
+        return await _repository.UpdateAsync(user, cancellationToken);
+    }
+
+    public async Task<User> ActivateUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("User ID cannot be empty.", nameof(userId));
+
+        var user = await _repository.GetByIdAsync(userId, cancellationToken);
+        if (user == null)
+            throw new InvalidOperationException("User not found.");
+
+        user.Activate();
+        return await _repository.UpdateAsync(user, cancellationToken);
+    }
+
     private static void ValidateSignInCommand(SignInCommand command)
     {
         if (command == null)

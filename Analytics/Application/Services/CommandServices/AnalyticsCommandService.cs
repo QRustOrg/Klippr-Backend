@@ -62,4 +62,14 @@ public class AnalyticsCommandService : IAnalyticsCommandService
 
         await _abuseRepository.AddAsync(report);
     }
+
+    public async Task Handle(UpdateAbuseReportStatusCommand command)
+    {
+        var report = await _abuseRepository.FindByIdAsync(command.ReportId);
+        if (report == null)
+            throw new InvalidOperationException("Abuse report not found.");
+
+        report.UpdateStatus(command.Status);
+        await _abuseRepository.UpdateAsync(report);
+    }
 }

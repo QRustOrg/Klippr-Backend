@@ -91,4 +91,9 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .AnyAsync(u => u.Email == emailVo, cancellationToken);
     }
+
+    public async Task<int> CountAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Users.CountAsync(cancellationToken);
+    }
 }

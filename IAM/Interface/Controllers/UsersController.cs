@@ -80,8 +80,10 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "ADMIN")]
     [ProducesResponseType(typeof(IEnumerable<UserResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetAllUsers(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10,
@@ -109,8 +111,10 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("role/{role}")]
+    [Authorize(Roles = "ADMIN")]
     [ProducesResponseType(typeof(IEnumerable<UserResource>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetUsersByRole(
         [FromRoute] string role,
         [FromQuery] int pageNumber = 1,

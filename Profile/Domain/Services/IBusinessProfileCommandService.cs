@@ -11,4 +11,5 @@ public interface IBusinessProfileCommandService
     Task<BusinessProfile> ApproveVerificationAsync(ApproveBusinessVerificationCommand command, CancellationToken cancellationToken = default);
     Task<BusinessProfile> RejectVerificationAsync(RejectBusinessVerificationCommand command, CancellationToken cancellationToken = default);
     Task<bool> DeactivateProfileAsync(Guid profileId, CancellationToken cancellationToken = default);
+    Task<bool> ActivateProfileAsync(Guid profileId, CancellationToken cancellationToken = default);
 }

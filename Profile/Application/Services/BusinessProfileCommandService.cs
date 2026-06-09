@@ -124,6 +124,21 @@ public class BusinessProfileCommandService : IBusinessProfileCommandService
         return true;
     }
 
+    public async Task<bool> ActivateProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        if (profileId == Guid.Empty)
+            throw new ArgumentException("Profile ID cannot be empty.", nameof(profileId));
+
+        var profile = await _repository.GetByIdAsync(profileId, cancellationToken);
+        if (profile == null)
+            throw new InvalidOperationException("Profile not found.");
+
+        profile.Activate();
+        await _repository.UpdateAsync(profile, cancellationToken);
+
+        return true;
+    }
+
     private static void ValidateCreateCommand(CreateBusinessProfileCommand command)
     {
         if (command == null)
