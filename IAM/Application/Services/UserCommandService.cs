@@ -71,6 +71,23 @@ public class UserCommandService : IUserCommandService
         return createdUser;
     }
 
+    public async Task<User> SignUpAdminAsync(SignUpAdminCommand command, CancellationToken cancellationToken = default)
+    {
+        ValidateSignUpAdminCommand(command);
+
+        var email = Email.Create(command.Email);
+
+        var emailExists = await _repository.ExistsByEmailAsync(email, cancellationToken);
+        if (emailExists)
+            throw new InvalidOperationException("Email already registered.");
+
+        var passwordHash = _hashingService.Hash(command.Password);
+        var user = User.CreateAdmin(email, passwordHash, command.FirstName, command.LastName);
+
+        var createdUser = await _repository.AddAsync(user, cancellationToken);
+        return createdUser;
+    }
+
     private static void ValidateSignInCommand(SignInCommand command)
     {
         if (command == null)
@@ -126,5 +143,26 @@ public class UserCommandService : IUserCommandService
 
         if (string.IsNullOrWhiteSpace(command.TaxId))
             throw new ArgumentException("Tax ID is required.", nameof(command.TaxId));
+    }
+
+    private static void ValidateSignUpAdminCommand(SignUpAdminCommand command)
+    {
+        if (command == null)
+            throw new ArgumentNullException(nameof(command));
+
+        if (string.IsNullOrWhiteSpace(command.Email))
+            throw new ArgumentException("Email is required.", nameof(command.Email));
+
+        if (string.IsNullOrWhiteSpace(command.Password))
+            throw new ArgumentException("Password is required.", nameof(command.Password));
+
+        if (command.Password.Length < 6)
+            throw new ArgumentException("Password must be at least 6 characters long.", nameof(command.Password));
+
+        if (string.IsNullOrWhiteSpace(command.FirstName))
+            throw new ArgumentException("First name is required.", nameof(command.FirstName));
+
+        if (string.IsNullOrWhiteSpace(command.LastName))
+            throw new ArgumentException("Last name is required.", nameof(command.LastName));
     }
 }

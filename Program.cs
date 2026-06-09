@@ -154,6 +154,7 @@ using (var scope = app.Services.CreateScope())
     services.GetRequiredService<ProfileDbContext>().Database.Migrate();
 }
 app.Services.ApplyIamMigrations();
+await Klippr_Backend.IAM.Infrastructure.IamSeeder.SeedAdminAsync(app.Services, builder.Configuration);
 
 if (app.Environment.IsDevelopment())
 {

@@ -27,4 +27,15 @@ public class VerificationDocumentCommandFromResourceAssembler
             ProfileId = profileId
         };
     }
+
+    public static RejectBusinessVerificationCommand ToRejectCommand(Guid profileId)
+    {
+        if (profileId == Guid.Empty)
+            throw new ArgumentException("Profile ID cannot be empty.", nameof(profileId));
+
+        return new RejectBusinessVerificationCommand
+        {
+            ProfileId = profileId
+        };
+    }
 }
