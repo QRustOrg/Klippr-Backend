@@ -156,17 +156,14 @@ using (var scope = app.Services.CreateScope())
 app.Services.ApplyIamMigrations();
 await Klippr_Backend.IAM.Infrastructure.IamSeeder.SeedAdminAsync(app.Services, builder.Configuration);
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Klippr Backend API v1");
-        options.SwaggerEndpoint("/swagger/v2/swagger.json", "Klippr Backend API v2");
-        options.RoutePrefix = "swagger";
-    });
-    app.MapOpenApi();
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Klippr Backend API v1");
+    options.SwaggerEndpoint("/swagger/v2/swagger.json", "Klippr Backend API v2");
+    options.RoutePrefix = "swagger";
+});
+app.MapOpenApi();
 
 app.UseRateLimiter();
 app.UseAuthentication();
