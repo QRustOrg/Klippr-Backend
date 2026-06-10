@@ -133,43 +133,4 @@ public class AnalyticsController(
             return BadRequest(ex.Message);
         }
     }
-    
-    /// <summary>
-    /// Obtiene reportes de abuso con filtro opcional.
-    /// </summary>
-    /// <param name="status">Estado del reporte (opcional).</param>
-    [HttpGet("abuse-reports")]
-    [SwaggerOperation(
-        Summary = "Obtiene reportes de abuso",
-        Description = "Devuelve reportes filtrados opcionalmente por estado",
-        OperationId = "GetAbuseReports")]
-    [SwaggerResponse(200, "Reportes obtenidos correctamente")]
-    [SwaggerResponse(400, "Parámetro inválido")]
-    public async Task<IActionResult> GetAbuseReportsAsync([FromQuery] string? status)
-    {
-        try
-        {
-            AbuseReportStatus? parsedStatus = null;
-
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                if (!Enum.TryParse<AbuseReportStatus>(status, true, out var enumStatus))
-                    return BadRequest("Invalid status value");
-
-                parsedStatus = enumStatus;
-            }
-
-            var query = new GetAbuseReportsQuery(parsedStatus);
-            var reports = await queryService.Handle(query);
-
-            return Ok(
-                AbuseReportResourceFromEntityAssembler
-                    .ToResourceList(reports)
-            );
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
 }

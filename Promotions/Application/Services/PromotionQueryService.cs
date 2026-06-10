@@ -37,4 +37,12 @@ public class PromotionQueryService(IPromotionRepository promotionRepository) : I
     {
         return promotionRepository.GetActiveAsync(cancellationToken);
     }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<Promotion>> GetAllAsync(
+        GetAllPromotionsQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        return promotionRepository.GetAllAsync(cancellationToken);
+    }
 }

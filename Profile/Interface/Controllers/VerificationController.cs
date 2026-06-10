@@ -65,4 +65,25 @@ public class VerificationController : ControllerBase
             return StatusCode(500, new { message = "Error approving verification" });
         }
     }
+
+    [HttpPost("reject")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> RejectVerification([FromBody] VerificationDocumentResource resource, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var command = VerificationDocumentCommandFromResourceAssembler.ToRejectCommand(resource.ProfileId);
+            var profile = await _commandService.RejectVerificationAsync(command, cancellationToken);
+
+            return Ok(new { message = "Verification rejected successfully", profileId = profile.Id });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error rejecting verification: {ex.Message}");
+            return StatusCode(500, new { message = "Error rejecting verification" });
+        }
+    }
 }

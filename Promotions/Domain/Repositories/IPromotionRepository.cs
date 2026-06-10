@@ -39,6 +39,13 @@ public interface IPromotionRepository
     Task<IReadOnlyList<Promotion>> GetActiveAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Obtiene todas las promociones sin filtrar por estado ni vigencia.
+    /// </summary>
+    /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
+    /// <returns>Coleccion completa de promociones en cualquier estado.</returns>
+    Task<IReadOnlyList<Promotion>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Agrega una nueva promocion al almacenamiento.
     /// </summary>
     /// <param name="promotion">Agregado de promocion que se desea persistir.</param>

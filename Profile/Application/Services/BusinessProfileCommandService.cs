@@ -92,6 +92,23 @@ public class BusinessProfileCommandService : IBusinessProfileCommandService
         return updatedProfile;
     }
 
+    public async Task<BusinessProfile> RejectVerificationAsync(RejectBusinessVerificationCommand command, CancellationToken cancellationToken = default)
+    {
+        if (command == null)
+            throw new ArgumentNullException(nameof(command));
+        if (command.ProfileId == Guid.Empty)
+            throw new ArgumentException("Profile ID cannot be empty.", nameof(command.ProfileId));
+
+        var profile = await _repository.GetByIdAsync(command.ProfileId, cancellationToken);
+        if (profile == null)
+            throw new InvalidOperationException("Profile not found.");
+
+        profile.RejectVerification();
+        var updatedProfile = await _repository.UpdateAsync(profile, cancellationToken);
+
+        return updatedProfile;
+    }
+
     public async Task<bool> DeactivateProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
         if (profileId == Guid.Empty)
@@ -102,6 +119,21 @@ public class BusinessProfileCommandService : IBusinessProfileCommandService
             throw new InvalidOperationException("Profile not found.");
 
         profile.Deactivate();
+        await _repository.UpdateAsync(profile, cancellationToken);
+
+        return true;
+    }
+
+    public async Task<bool> ActivateProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        if (profileId == Guid.Empty)
+            throw new ArgumentException("Profile ID cannot be empty.", nameof(profileId));
+
+        var profile = await _repository.GetByIdAsync(profileId, cancellationToken);
+        if (profile == null)
+            throw new InvalidOperationException("Profile not found.");
+
+        profile.Activate();
         await _repository.UpdateAsync(profile, cancellationToken);
 
         return true;

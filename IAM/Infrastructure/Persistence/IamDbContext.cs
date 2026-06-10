@@ -29,10 +29,12 @@ public class IamDbContext : DbContext
                     e => e.Value,
                     value => Email.Create(value))
                 .HasColumnName("email")
+                .HasMaxLength(256)
                 .IsRequired();
 
             entity.Property(e => e.PasswordHash)
                 .HasColumnName("password_hash")
+                .HasMaxLength(256)
                 .IsRequired();
 
             entity.Property(e => e.Role)
@@ -40,22 +42,27 @@ public class IamDbContext : DbContext
                     r => r.Value,
                     value => Role.Create(value))
                 .HasColumnName("role")
+                .HasMaxLength(32)
                 .IsRequired();
 
             entity.Property(e => e.FirstName)
                 .HasColumnName("first_name")
+                .HasMaxLength(100)
                 .IsRequired();
 
             entity.Property(e => e.LastName)
                 .HasColumnName("last_name")
+                .HasMaxLength(100)
                 .IsRequired(false);
 
             entity.Property(e => e.BusinessName)
                 .HasColumnName("business_name")
+                .HasMaxLength(200)
                 .IsRequired(false);
 
             entity.Property(e => e.TaxId)
                 .HasColumnName("tax_id")
+                .HasMaxLength(50)
                 .IsRequired(false);
 
             entity.Property(e => e.IsActive)
@@ -64,11 +71,11 @@ public class IamDbContext : DbContext
 
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("created_at")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
             entity.Property(e => e.UpdatedAt)
                 .HasColumnName("updated_at")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
             entity.HasIndex(e => e.Email)
                 .IsUnique();

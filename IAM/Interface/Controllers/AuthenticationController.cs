@@ -4,11 +4,13 @@ using Klippr_Backend.IAM.Domain.Services;
 using Klippr_Backend.IAM.Interface.Assemblers;
 using Klippr_Backend.IAM.Interface.Resources;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Klippr_Backend.IAM.Interface.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("auth")]
 public class AuthenticationController : ControllerBase
 {
     private readonly IUserCommandService _userCommandService;
@@ -47,13 +49,15 @@ public class AuthenticationController : ControllerBase
 
             return Ok(response);
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            return BadRequest(new { message = ex.Message });
+            // Generic response to avoid user enumeration / credential probing.
+            return Unauthorized(new { message = "Invalid email or password." });
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return Unauthorized(new { message = ex.Message });
+            // Generic response to avoid user enumeration / credential probing.
+            return Unauthorized(new { message = "Invalid email or password." });
         }
         catch (Exception)
         {
@@ -62,7 +66,7 @@ public class AuthenticationController : ControllerBase
     }
 
     [HttpPost("sign-up/consumer")]
-    [ProducesResponseType(typeof(AuthenticatedUserResource), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(UserResource), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> SignUpConsumer([FromBody] SignUpConsumerResource resource, CancellationToken cancellationToken)
@@ -78,8 +82,7 @@ public class AuthenticationController : ControllerBase
             var command = SignUpConsumerCommandFromResourceAssembler.Assemble(resource);
             var user = await _userCommandService.SignUpConsumerAsync(command, cancellationToken);
 
-            var token = _tokenService.GenerateToken(user.Id, user.Email.Value, user.Role.Value);
-            var response = AuthenticatedUserResourceFromEntityAssembler.Assemble(user, token);
+            var response = UserResourceFromEntityAssembler.Assemble(user);
 
             return CreatedAtAction(nameof(SignUpConsumer), response);
         }
@@ -98,7 +101,7 @@ public class AuthenticationController : ControllerBase
     }
 
     [HttpPost("sign-up/business")]
-    [ProducesResponseType(typeof(AuthenticatedUserResource), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(UserResource), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> SignUpBusiness([FromBody] SignUpBusinessResource resource, CancellationToken cancellationToken)
@@ -114,8 +117,7 @@ public class AuthenticationController : ControllerBase
             var command = SignUpBusinessCommandFromResourceAssembler.Assemble(resource);
             var user = await _userCommandService.SignUpBusinessAsync(command, cancellationToken);
 
-            var token = _tokenService.GenerateToken(user.Id, user.Email.Value, user.Role.Value);
-            var response = AuthenticatedUserResourceFromEntityAssembler.Assemble(user, token);
+            var response = UserResourceFromEntityAssembler.Assemble(user);
 
             return CreatedAtAction(nameof(SignUpBusiness), response);
         }

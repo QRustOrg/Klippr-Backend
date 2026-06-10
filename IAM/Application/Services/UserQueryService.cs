@@ -66,4 +66,9 @@ public class UserQueryService : IUserQueryService
 
         return await _repository.GetByRoleAsync(query.Role, query.PageNumber, query.PageSize, cancellationToken);
     }
+
+    public async Task<int> CountAsync(CancellationToken cancellationToken = default)
+    {
+        return await _repository.CountAsync(cancellationToken);
+    }
 }

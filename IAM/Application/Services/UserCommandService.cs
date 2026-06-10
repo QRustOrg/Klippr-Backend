@@ -31,8 +31,7 @@ public class UserCommandService : IUserCommandService
         if (!existingUser.IsActive)
             throw new InvalidOperationException("User account is inactive.");
 
-        var passwordHash = _hashingService.Hash(command.Password);
-        if (!existingUser.IsPasswordValid(passwordHash))
+        if (!_hashingService.Verify(command.Password, existingUser.PasswordHash))
             throw new InvalidOperationException("Invalid credentials.");
 
         return existingUser;
@@ -70,6 +69,49 @@ public class UserCommandService : IUserCommandService
 
         var createdUser = await _repository.AddAsync(user, cancellationToken);
         return createdUser;
+    }
+
+    public async Task<User> SignUpAdminAsync(SignUpAdminCommand command, CancellationToken cancellationToken = default)
+    {
+        ValidateSignUpAdminCommand(command);
+
+        var email = Email.Create(command.Email);
+
+        var emailExists = await _repository.ExistsByEmailAsync(email, cancellationToken);
+        if (emailExists)
+            throw new InvalidOperationException("Email already registered.");
+
+        var passwordHash = _hashingService.Hash(command.Password);
+        var user = User.CreateAdmin(email, passwordHash, command.FirstName, command.LastName);
+
+        var createdUser = await _repository.AddAsync(user, cancellationToken);
+        return createdUser;
+    }
+
+    public async Task<User> DeactivateUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("User ID cannot be empty.", nameof(userId));
+
+        var user = await _repository.GetByIdAsync(userId, cancellationToken);
+        if (user == null)
+            throw new InvalidOperationException("User not found.");
+
+        user.Deactivate();
+        return await _repository.UpdateAsync(user, cancellationToken);
+    }
+
+    public async Task<User> ActivateUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("User ID cannot be empty.", nameof(userId));
+
+        var user = await _repository.GetByIdAsync(userId, cancellationToken);
+        if (user == null)
+            throw new InvalidOperationException("User not found.");
+
+        user.Activate();
+        return await _repository.UpdateAsync(user, cancellationToken);
     }
 
     private static void ValidateSignInCommand(SignInCommand command)
@@ -127,5 +169,26 @@ public class UserCommandService : IUserCommandService
 
         if (string.IsNullOrWhiteSpace(command.TaxId))
             throw new ArgumentException("Tax ID is required.", nameof(command.TaxId));
+    }
+
+    private static void ValidateSignUpAdminCommand(SignUpAdminCommand command)
+    {
+        if (command == null)
+            throw new ArgumentNullException(nameof(command));
+
+        if (string.IsNullOrWhiteSpace(command.Email))
+            throw new ArgumentException("Email is required.", nameof(command.Email));
+
+        if (string.IsNullOrWhiteSpace(command.Password))
+            throw new ArgumentException("Password is required.", nameof(command.Password));
+
+        if (command.Password.Length < 6)
+            throw new ArgumentException("Password must be at least 6 characters long.", nameof(command.Password));
+
+        if (string.IsNullOrWhiteSpace(command.FirstName))
+            throw new ArgumentException("First name is required.", nameof(command.FirstName));
+
+        if (string.IsNullOrWhiteSpace(command.LastName))
+            throw new ArgumentException("Last name is required.", nameof(command.LastName));
     }
 }

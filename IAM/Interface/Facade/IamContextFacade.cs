@@ -57,4 +57,9 @@ public class IamContextFacade
         var query = new GetUsersByRoleQuery { Role = role, PageNumber = pageNumber, PageSize = pageSize };
         return await _userQueryService.GetUsersByRoleAsync(query, cancellationToken);
     }
+
+    public async Task<int> CountUsersAsync(CancellationToken cancellationToken = default)
+    {
+        return await _userQueryService.CountAsync(cancellationToken);
+    }
 }

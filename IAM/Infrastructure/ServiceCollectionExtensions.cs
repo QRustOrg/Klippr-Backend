@@ -14,7 +14,7 @@ namespace Klippr_Backend.IAM.Infrastructure;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddIamServices(this IServiceCollection services, string connectionString, string jwtSecretKey, int jwtExpirationMinutes = 60)
+    public static IServiceCollection AddIamServices(this IServiceCollection services, string connectionString, string jwtSecretKey, int jwtExpirationMinutes = 60, string jwtIssuer = "klippr-iam", string jwtAudience = "klippr-api")
     {
         if (string.IsNullOrWhiteSpace(connectionString))
             throw new ArgumentException("Connection string cannot be null or empty.", nameof(connectionString));
@@ -24,7 +24,7 @@ public static class ServiceCollectionExtensions
 
         // Database
         services.AddDbContext<IamDbContext>(options =>
-            options.UseSqlite(connectionString));
+            options.UseMySQL(connectionString));
 
         // Repositories
         services.AddScoped<IUserRepository, UserRepository>();
@@ -35,7 +35,7 @@ public static class ServiceCollectionExtensions
 
         // Infrastructure Services
         services.AddSingleton<IHashingService, HashingService>();
-        services.AddSingleton<ITokenService>(new TokenService(jwtSecretKey, jwtExpirationMinutes));
+        services.AddSingleton<ITokenService>(new TokenService(jwtSecretKey, jwtExpirationMinutes, jwtIssuer, jwtAudience));
 
         // Facade
         services.AddScoped<IamContextFacade>();

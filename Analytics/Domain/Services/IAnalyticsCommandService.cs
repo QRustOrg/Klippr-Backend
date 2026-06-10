@@ -7,4 +7,5 @@ public interface IAnalyticsCommandService
 {
     Task Handle(UpdateMetricsCommand command);
     Task Handle(RegisterAbuseReportCommand command);
+    Task Handle(UpdateAbuseReportStatusCommand command);
 }

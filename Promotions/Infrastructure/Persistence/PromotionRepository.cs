@@ -51,6 +51,14 @@ public class PromotionRepository(
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Promotion>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Promotions
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     public async Task AddAsync(Promotion promotion, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promotion);
