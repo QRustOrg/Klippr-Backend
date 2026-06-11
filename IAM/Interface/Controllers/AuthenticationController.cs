@@ -134,4 +134,69 @@ public class AuthenticationController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred during sign up." });
         }
     }
+
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordResource resource, CancellationToken cancellationToken)
+    {
+        if (resource == null)
+            return BadRequest(new { message = "Request body is required." });
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var command = ForgotPasswordCommandFromResourceAssembler.Assemble(resource);
+            var exists = await _userCommandService.VerifyEmailExistsAsync(command, cancellationToken);
+
+            if (!exists)
+                return NotFound(new { message = "Email not found." });
+
+            return Ok(new { message = "Email verified." });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while verifying the email." });
+        }
+    }
+
+    [HttpPut("reset-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordResource resource, CancellationToken cancellationToken)
+    {
+        if (resource == null)
+            return BadRequest(new { message = "Request body is required." });
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var command = ResetPasswordCommandFromResourceAssembler.Assemble(resource);
+            await _userCommandService.ResetPasswordAsync(command, cancellationToken);
+
+            return Ok(new { message = "Password updated successfully." });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound(new { message = "User not found." });
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while resetting the password." });
+        }
+    }
 }
