@@ -114,6 +114,54 @@ public class UserCommandService : IUserCommandService
         return await _repository.UpdateAsync(user, cancellationToken);
     }
 
+    public async Task<bool> VerifyEmailExistsAsync(ForgotPasswordCommand command, CancellationToken cancellationToken = default)
+    {
+        ValidateForgotPasswordCommand(command);
+
+        var email = Email.Create(command.Email);
+        return await _repository.ExistsByEmailAsync(email, cancellationToken);
+    }
+
+    public async Task<User> ResetPasswordAsync(ResetPasswordCommand command, CancellationToken cancellationToken = default)
+    {
+        ValidateResetPasswordCommand(command);
+
+        var email = Email.Create(command.Email);
+        var existingUser = await _repository.GetByEmailAsync(email, cancellationToken);
+
+        if (existingUser == null)
+            throw new InvalidOperationException("User not found.");
+
+        var newPasswordHash = _hashingService.Hash(command.NewPassword);
+        existingUser.UpdatePassword(newPasswordHash);
+
+        return await _repository.UpdateAsync(existingUser, cancellationToken);
+    }
+
+    private static void ValidateForgotPasswordCommand(ForgotPasswordCommand command)
+    {
+        if (command == null)
+            throw new ArgumentNullException(nameof(command));
+
+        if (string.IsNullOrWhiteSpace(command.Email))
+            throw new ArgumentException("Email is required.", nameof(command.Email));
+    }
+
+    private static void ValidateResetPasswordCommand(ResetPasswordCommand command)
+    {
+        if (command == null)
+            throw new ArgumentNullException(nameof(command));
+
+        if (string.IsNullOrWhiteSpace(command.Email))
+            throw new ArgumentException("Email is required.", nameof(command.Email));
+
+        if (string.IsNullOrWhiteSpace(command.NewPassword))
+            throw new ArgumentException("Password is required.", nameof(command.NewPassword));
+
+        if (command.NewPassword.Length < 6)
+            throw new ArgumentException("Password must be at least 6 characters long.", nameof(command.NewPassword));
+    }
+
     private static void ValidateSignInCommand(SignInCommand command)
     {
         if (command == null)
