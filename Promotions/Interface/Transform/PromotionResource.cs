@@ -17,6 +17,7 @@ namespace Klippr_Backend.Promotions.Interface.Transform;
 /// <param name="CreatedAt">Fecha y hora UTC de creacion.</param>
 /// <param name="UpdatedAt">Fecha y hora UTC de ultima actualizacion.</param>
 /// <param name="IsActive">Indica si la promocion esta publicada y vigente.</param>
+/// <param name="ImageKey">Clave opcional de imagen promocional local.</param>
 public record PromotionResource(
     Guid Id,
     Guid BusinessId,
@@ -27,6 +28,7 @@ public record PromotionResource(
     DateTime StartDate,
     DateTime EndDate,
     int? RedemptionCap,
+    string? ImageKey,
     string Status,
     DateTime CreatedAt,
     DateTime UpdatedAt,

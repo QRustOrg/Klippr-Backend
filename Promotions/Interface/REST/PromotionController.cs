@@ -33,6 +33,8 @@ public class PromotionController(
         Summary = "Crear promocion",
         Description = "Crea una nueva promocion en estado borrador asociada a un negocio. La promocion no es visible para consumidores hasta que sea publicada.",
         OperationId = "CreatePromotion")]
+    [ProducesResponseType(typeof(PromotionCreatedResource), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateAsync(
         [FromBody] CreatePromotionResource resource,
         CancellationToken cancellationToken)
@@ -47,7 +49,7 @@ public class PromotionController(
             return CreatedAtRoute(
                 GetPromotionByIdRouteName,
                 new { promotionId },
-                new { promotionId });
+                new PromotionCreatedResource(promotionId));
         }
         catch (ArgumentException exception)
         {

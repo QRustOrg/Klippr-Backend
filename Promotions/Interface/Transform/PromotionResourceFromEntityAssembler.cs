@@ -31,6 +31,7 @@ public static class PromotionResourceFromEntityAssembler
             promotion.ValidityPeriod.StartDate,
             promotion.ValidityPeriod.EndDate,
             promotion.RedemptionCap,
+            promotion.ImageKey,
             promotion.Status.ToString(),
             promotion.CreatedAt,
             promotion.UpdatedAt,

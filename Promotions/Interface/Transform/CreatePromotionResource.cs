@@ -12,6 +12,7 @@ namespace Klippr_Backend.Promotions.Interface.Transform;
 /// <param name="StartDate">Fecha y hora UTC de inicio de vigencia.</param>
 /// <param name="EndDate">Fecha y hora UTC de fin de vigencia.</param>
 /// <param name="RedemptionCap">Limite maximo de redenciones permitidas.</param>
+/// <param name="ImageKey">Clave opcional de imagen promocional local.</param>
 public record CreatePromotionResource(
     Guid BusinessId,
     string Title,
@@ -20,5 +21,6 @@ public record CreatePromotionResource(
     string DiscountType,
     DateTime StartDate,
     DateTime EndDate,
-    int? RedemptionCap
+    int? RedemptionCap,
+    string? ImageKey
 );
