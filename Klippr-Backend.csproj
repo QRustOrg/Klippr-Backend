@@ -5,7 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>Klippr_Backend</RootNamespace>
-        <DefaultItemExcludes>$(DefaultItemExcludes);**/bin/**;**/obj/**</DefaultItemExcludes>
+        <DefaultItemExcludes>$(DefaultItemExcludes);**/bin/**;**/obj/**;Klippr-Backend.Tests/**</DefaultItemExcludes>
     </PropertyGroup>
 
     <ItemGroup>

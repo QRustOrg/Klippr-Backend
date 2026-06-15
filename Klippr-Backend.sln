@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Klippr-Backend", "Klippr-Backend.csproj", "{C97B09A6-6BFD-4496-ABA1-C02270715444}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Klippr-Backend.Tests", "Klippr-Backend.Tests\Klippr-Backend.Tests.csproj", "{886BF07D-748F-4676-91C1-70148BE42A24}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{C97B09A6-6BFD-4496-ABA1-C02270715444}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C97B09A6-6BFD-4496-ABA1-C02270715444}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C97B09A6-6BFD-4496-ABA1-C02270715444}.Release|Any CPU.Build.0 = Release|Any CPU
+		{886BF07D-748F-4676-91C1-70148BE42A24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{886BF07D-748F-4676-91C1-70148BE42A24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{886BF07D-748F-4676-91C1-70148BE42A24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{886BF07D-748F-4676-91C1-70148BE42A24}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

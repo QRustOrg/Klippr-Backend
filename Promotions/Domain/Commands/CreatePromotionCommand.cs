@@ -12,6 +12,7 @@ namespace Klippr_Backend.Promotions.Domain.Commands;
 /// <param name="Discount">Valor del descuento ofrecido por la promoción.</param>
 /// <param name="ValidityPeriod">Rango de fechas durante el cual la promoción puede estar vigente.</param>
 /// <param name="RedemptionCap">Límite máximo de redenciones permitidas; <see langword="null"/> indica redenciones ilimitadas.</param>
+/// <param name="ImageKey">Clave opcional de imagen promocional local.</param>
 /// <remarks>
 /// Este comando es un portador de datos inmutable. Las reglas de negocio y validaciones, se aplican exclusivamente dentro del agregado <c>Promotion</c>.
 /// </remarks>
@@ -21,5 +22,6 @@ public record CreatePromotionCommand(
     string Description,
     DiscountValue Discount,
     TimeFrame ValidityPeriod,
-    int? RedemptionCap
+    int? RedemptionCap,
+    string? ImageKey
 );

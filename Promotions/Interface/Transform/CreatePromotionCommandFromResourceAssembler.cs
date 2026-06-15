@@ -28,7 +28,8 @@ public static class CreatePromotionCommandFromResourceAssembler
             resource.Description,
             new DiscountValue(resource.DiscountAmount, DiscountTypeParser.Parse(resource.DiscountType)),
             new TimeFrame(resource.StartDate, resource.EndDate),
-            resource.RedemptionCap
+            resource.RedemptionCap,
+            resource.ImageKey
         );
     }
 }
