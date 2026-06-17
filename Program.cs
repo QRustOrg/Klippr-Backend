@@ -25,6 +25,12 @@ using Klippr_Backend.Redemption.Domain.Services;
 using Klippr_Backend.Redemption.Infrastructure.EventPublishing;
 using Klippr_Backend.Redemption.Infrastructure.Persistence;
 using Klippr_Backend.Redemption.Infrastructure.Persistence.Repositories;
+using Klippr_Backend.Reviews.Application.Services;
+using Klippr_Backend.Reviews.Domain.Repositories;
+using Klippr_Backend.Reviews.Domain.Services;
+using Klippr_Backend.Reviews.Infrastructure.Persistence;
+using Klippr_Backend.Reviews.Infrastructure.Persistence.Repositories;
+using Klippr_Backend.Reviews.Interface.Transform;
 using Klippr_Backend.Shared.Domain.Repositories;
 using Klippr_Backend.Shared.Infrastructure.EventPublishing;
 using Klippr_Backend.Shared.Infrastructure.Persistence.EFC.Configuration;
@@ -83,6 +89,8 @@ builder.Services.AddDbContext<RedemptionDbContext>(options =>
     options.UseMySQL(defaultConnectionString));
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySQL(defaultConnectionString));
+builder.Services.AddDbContext<ReviewsDbContext>(options =>
+    options.UseMySQL(defaultConnectionString));
 
 builder.Services.AddIamServices(defaultConnectionString, jwtSecretKey, jwtExpirationMinutes, jwtIssuer, jwtAudience);
 builder.Services.AddProfileServices(defaultConnectionString);
@@ -102,6 +110,11 @@ builder.Services.AddScoped<IRedemptionRepository, RedemptionRepository>();
 builder.Services.AddScoped<IRedemptionCommandService, RedemptionCommandService>();
 builder.Services.AddScoped<IRedemptionQueryService, RedemptionQueryService>();
 builder.Services.AddScoped<RedemptionEventPublisher>();
+
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IReviewQueryService, ReviewQueryService>();
+builder.Services.AddScoped<IReviewCommandService, ReviewCommandService>();
+builder.Services.AddScoped<ReviewEnrichmentService>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
@@ -152,6 +165,7 @@ using (var scope = app.Services.CreateScope())
     services.GetRequiredService<RedemptionDbContext>().Database.Migrate();
     services.GetRequiredService<AppDbContext>().Database.Migrate();
     services.GetRequiredService<ProfileDbContext>().Database.Migrate();
+    services.GetRequiredService<ReviewsDbContext>().Database.Migrate();
 }
 app.Services.ApplyIamMigrations();
 await Klippr_Backend.IAM.Infrastructure.IamSeeder.SeedAdminAsync(app.Services, builder.Configuration);
