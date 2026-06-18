@@ -124,6 +124,22 @@ builder.Services.AddScoped<IFavoritesContextFacade, FavoritesContextFacade>();
 
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
+// Community Bounded Context (fully-qualified to avoid name collisions with the Reviews context)
+builder.Services.AddScoped<Klippr_Backend.Community.Domain.Repositories.IReviewRepository,
+    Klippr_Backend.Community.Infrastructure.Persistence.EFC.Repositories.ReviewRepository>();
+builder.Services.AddScoped<Klippr_Backend.Community.Domain.Services.IReviewCommandService,
+    Klippr_Backend.Community.Application.Internal.CommandServices.ReviewCommandService>();
+builder.Services.AddScoped<Klippr_Backend.Community.Domain.Services.IReviewQueryServices,
+    Klippr_Backend.Community.Application.Internal.QueryServices.ReviewQueryService>();
+
+// Setting Bounded Context
+builder.Services.AddScoped<Klippr_Backend.Setting.Domain.Repositories.IPreferenceRepository,
+    Klippr_Backend.Setting.Infrastructure.Persistence.EFC.Repositories.PreferenceRepository>();
+builder.Services.AddScoped<Klippr_Backend.Setting.Domain.Services.IPreferenceCommandService,
+    Klippr_Backend.Setting.Application.Internal.CommandServices.PreferenceCommandService>();
+builder.Services.AddScoped<Klippr_Backend.Setting.Domain.Services.IPreferenceQueryServices,
+    Klippr_Backend.Setting.Application.Internal.QueryServices.PreferenceQueryService>();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
