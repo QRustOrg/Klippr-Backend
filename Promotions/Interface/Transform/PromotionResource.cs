@@ -6,6 +6,7 @@ namespace Klippr_Backend.Promotions.Interface.Transform;
 /// <author>Samuel Bonifacio</author>
 /// <param name="Id">Identificador unico de la promocion.</param>
 /// <param name="BusinessId">Identificador del negocio propietario.</param>
+/// <param name="BusinessName">Nombre comercial del negocio propietario.</param>
 /// <param name="Title">Titulo comercial de la promocion.</param>
 /// <param name="Description">Descripcion visible de la promocion.</param>
 /// <param name="DiscountAmount">Monto numerico del descuento.</param>
@@ -21,6 +22,7 @@ namespace Klippr_Backend.Promotions.Interface.Transform;
 public record PromotionResource(
     Guid Id,
     Guid BusinessId,
+    string? BusinessName,
     string Title,
     string Description,
     decimal DiscountAmount,

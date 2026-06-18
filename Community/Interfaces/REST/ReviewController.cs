@@ -53,7 +53,7 @@ public class ReviewsController(
     [SwaggerOperation(
         Summary = "Create a new Review",
         Description = "Create a new Review",
-        OperationId = "CreateReview")]
+        OperationId = "CreateCommunityReview")]
     [SwaggerResponse(StatusCodes.Status201Created, "The Review was created", typeof(ReviewResource))]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The Review could not be created")]
     public async Task<IActionResult> CreateReview([FromBody] CreateReviewResource resource)

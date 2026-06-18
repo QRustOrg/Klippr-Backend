@@ -18,7 +18,8 @@ namespace Klippr_Backend.Promotions.Interface.REST;
 [Route("api/promotions")]
 public class PromotionController(
     IPromotionCommandService promotionCommandService,
-    IPromotionQueryService promotionQueryService) : ControllerBase
+    IPromotionQueryService promotionQueryService,
+    PromotionEnrichmentService promotionEnrichmentService) : ControllerBase
 {
     private const string GetPromotionByIdRouteName = "GetPromotionById";
 
@@ -71,13 +72,16 @@ public class PromotionController(
         Summary = "Listar todas las promociones",
         Description = "Retorna todas las promociones del sistema en cualquier estado (borrador, publicada, cancelada).",
         OperationId = "GetAllPromotions")]
+    [ProducesResponseType(typeof(IReadOnlyList<PromotionResource>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync(CancellationToken cancellationToken)
     {
         var promotions = await promotionQueryService
             .GetAllAsync(new GetAllPromotionsQuery(), cancellationToken)
             .ConfigureAwait(false);
 
-        return Ok(PromotionResourceFromEntityAssembler.ToResources(promotions));
+        return Ok(await promotionEnrichmentService
+            .ToResourcesAsync(promotions, cancellationToken)
+            .ConfigureAwait(false));
     }
 
     /// <summary>
@@ -91,6 +95,8 @@ public class PromotionController(
         Summary = "Obtener promocion por ID",
         Description = "Retorna los detalles completos de una promocion dado su identificador unico. Retorna 404 si no existe.",
         OperationId = "GetPromotionById")]
+    [ProducesResponseType(typeof(PromotionResource), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByIdAsync(
         Guid promotionId,
         CancellationToken cancellationToken)
@@ -102,7 +108,9 @@ public class PromotionController(
         if (promotion is null)
             return NotFound();
 
-        return Ok(PromotionResourceFromEntityAssembler.ToResource(promotion));
+        return Ok(await promotionEnrichmentService
+            .ToResourceAsync(promotion, cancellationToken)
+            .ConfigureAwait(false));
     }
 
     /// <summary>
@@ -115,13 +123,16 @@ public class PromotionController(
         Summary = "Listar promociones activas",
         Description = "Retorna todas las promociones en estado publicado y dentro de su periodo de vigencia, disponibles para ser canjeadas por consumidores.",
         OperationId = "GetActivePromotions")]
+    [ProducesResponseType(typeof(IReadOnlyList<PromotionResource>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetActiveAsync(CancellationToken cancellationToken)
     {
         var promotions = await promotionQueryService
             .GetActiveAsync(new GetActivePromotionsQuery(), cancellationToken)
             .ConfigureAwait(false);
 
-        return Ok(PromotionResourceFromEntityAssembler.ToResources(promotions));
+        return Ok(await promotionEnrichmentService
+            .ToResourcesAsync(promotions, cancellationToken)
+            .ConfigureAwait(false));
     }
 
     /// <summary>
@@ -135,6 +146,7 @@ public class PromotionController(
         Summary = "Listar promociones por negocio",
         Description = "Retorna todas las promociones creadas por un negocio en cualquier estado (borrador, publicada, cancelada). Util para la gestion interna del negocio.",
         OperationId = "GetPromotionsByBusinessId")]
+    [ProducesResponseType(typeof(IReadOnlyList<PromotionResource>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByBusinessIdAsync(
         Guid businessId,
         CancellationToken cancellationToken)
@@ -143,7 +155,9 @@ public class PromotionController(
             .GetByBusinessIdAsync(new GetPromotionsByBusinessIdQuery(businessId), cancellationToken)
             .ConfigureAwait(false);
 
-        return Ok(PromotionResourceFromEntityAssembler.ToResources(promotions));
+        return Ok(await promotionEnrichmentService
+            .ToResourcesAsync(promotions, cancellationToken)
+            .ConfigureAwait(false));
     }
 
     /// <summary>

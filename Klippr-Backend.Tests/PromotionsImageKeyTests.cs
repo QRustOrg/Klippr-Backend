@@ -141,6 +141,16 @@ public class PromotionsImageKeyTests
     }
 
     [Fact]
+    public void PromotionResourceAssemblerCarriesBusinessName()
+    {
+        var promotion = Promotion.Create(CreateCommand(null));
+
+        var resource = PromotionResourceFromEntityAssembler.ToResource(promotion, "Pizzeria Central");
+
+        Assert.Equal("Pizzeria Central", resource.BusinessName);
+    }
+
+    [Fact]
     public void UpdateRejectsUnknownImageKey()
     {
         var promotion = Promotion.Create(CreateCommand(null));

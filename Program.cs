@@ -19,6 +19,7 @@ using Klippr_Backend.Promotions.Domain.Repositories;
 using Klippr_Backend.Promotions.Domain.Services;
 using Klippr_Backend.Promotions.Infrastructure.EventPublishing;
 using Klippr_Backend.Promotions.Infrastructure.Persistence;
+using Klippr_Backend.Promotions.Interface.Transform;
 using Klippr_Backend.Redemption.Application.Services;
 using Klippr_Backend.Redemption.Domain.Repositories;
 using Klippr_Backend.Redemption.Domain.Services;
@@ -63,6 +64,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(options =>
 {
     options.EnableAnnotations();
+    options.CustomSchemaIds(type => (type.FullName ?? type.Name).Replace("+", "."));
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "Klippr Backend API", Version = "v1" });
     options.SwaggerDoc("v2", new OpenApiInfo { Title = "Klippr Backend API", Version = "v2" });
 
@@ -105,6 +107,7 @@ builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IPromotionCommandService, PromotionCommandService>();
 builder.Services.AddScoped<IPromotionQueryService, PromotionQueryService>();
 builder.Services.AddScoped<PromotionEventPublisher>();
+builder.Services.AddScoped<PromotionEnrichmentService>();
 
 builder.Services.AddScoped<IRedemptionRepository, RedemptionRepository>();
 builder.Services.AddScoped<IRedemptionCommandService, RedemptionCommandService>();
