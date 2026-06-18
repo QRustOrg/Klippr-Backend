@@ -1,3 +1,4 @@
+using Klippr_Backend.IAM.Domain.Repositories;
 using Klippr_Backend.Profile.Domain.Repositories;
 using Klippr_Backend.Promotions.Domain.Aggregates;
 
@@ -6,7 +7,9 @@ namespace Klippr_Backend.Promotions.Interface.Transform;
 /// <summary>
 /// Enriquece promociones con datos de perfil necesarios para respuestas HTTP.
 /// </summary>
-public class PromotionEnrichmentService(IBusinessProfileRepository businessProfileRepository)
+public class PromotionEnrichmentService(
+    IBusinessProfileRepository businessProfileRepository,
+    IUserRepository userRepository)
 {
     public async Task<PromotionResource> ToResourceAsync(
         Promotion promotion,
@@ -53,6 +56,13 @@ public class PromotionEnrichmentService(IBusinessProfileRepository businessProfi
             .GetByIdAsync(businessId, cancellationToken)
             .ConfigureAwait(false);
 
-        return businessProfile?.BusinessName;
+        if (!string.IsNullOrWhiteSpace(businessProfile?.BusinessName))
+            return businessProfile.BusinessName;
+
+        var user = await userRepository
+            .GetByIdAsync(businessId, cancellationToken)
+            .ConfigureAwait(false);
+
+        return string.IsNullOrWhiteSpace(user?.BusinessName) ? null : user.BusinessName;
     }
 }
