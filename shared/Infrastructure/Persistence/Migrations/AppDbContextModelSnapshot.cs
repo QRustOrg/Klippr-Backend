@@ -109,6 +109,10 @@ namespace Klippr_Backend.shared.Infrastructure.Persistence.Migrations
                         .HasColumnType("varchar(36)")
                         .HasColumnName("favorite_id");
 
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("is_archived");
+
                     b.Property<string>("PromotionId")
                         .IsRequired()
                         .HasMaxLength(36)

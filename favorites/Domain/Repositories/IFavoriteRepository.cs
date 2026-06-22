@@ -5,7 +5,8 @@ namespace Klippr_Backend.Favorites.Domain.Repositories;
 
 public interface IFavoriteRepository : IBaseRepository<Favorite>
 {
-    Task<IEnumerable<Favorite>> FindByUserIdAsync(string userId);
+    Task<IEnumerable<Favorite>> FindByUserIdAsync(string userId, bool archived = false);
     Task<Favorite?>             FindByFavoriteIdAsync(string favoriteId);
+    Task<Favorite?>             FindByUserAndPromotionAsync(string userId, string promotionId);
     Task<bool>                  ExistsAsync(string userId, string promotionId);
 }

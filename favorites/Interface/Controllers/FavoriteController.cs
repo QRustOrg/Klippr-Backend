@@ -16,10 +16,10 @@ public class FavoritesController(
     IFavoriteQueryService   queryService) : ControllerBase
 {
     [HttpGet("user/{userId}")]
-    public async Task<IActionResult> GetFavoritesByUser(string userId)
+    public async Task<IActionResult> GetFavoritesByUser(string userId, [FromQuery] bool archived = false)
     {
         if (string.IsNullOrWhiteSpace(userId)) return BadRequest();
-        var items = (await queryService.Handle(new GetUserFavoritesQuery(userId)))
+        var items = (await queryService.Handle(new GetUserFavoritesQuery(userId, archived)))
             .Select(FavoriteResourceFromEntityAssembler.ToResourceFromEntity)
             .ToList();
         return Ok(new FavoriteListResource(userId, items.Count, items.AsReadOnly()));
@@ -49,5 +49,19 @@ public class FavoritesController(
     {
         var removed = await commandService.Handle(new RemoveFavoriteCommand(userId, favoriteId));
         return removed ? NoContent() : NotFound();
+    }
+
+    [HttpPatch("{favoriteId}/archive")]
+    public async Task<IActionResult> ArchiveFavorite(string favoriteId, [FromQuery] string userId)
+    {
+        var archived = await commandService.Handle(new ArchiveFavoriteCommand(userId, favoriteId));
+        return archived ? NoContent() : NotFound();
+    }
+
+    [HttpPatch("{favoriteId}/restore")]
+    public async Task<IActionResult> RestoreFavorite(string favoriteId, [FromQuery] string userId)
+    {
+        var restored = await commandService.Handle(new RestoreFavoriteCommand(userId, favoriteId));
+        return restored ? NoContent() : NotFound();
     }
 }

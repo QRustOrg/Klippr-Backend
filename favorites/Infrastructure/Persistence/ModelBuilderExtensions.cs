@@ -12,6 +12,7 @@ public static class ModelBuilderExtensions
         builder.Entity<Favorite>().Property(f => f.FavoriteId).IsRequired().HasMaxLength(36);
         builder.Entity<Favorite>().Property(f => f.UserId).IsRequired().HasMaxLength(36);
         builder.Entity<Favorite>().Property(f => f.PromotionId).IsRequired().HasMaxLength(36);
+        builder.Entity<Favorite>().Property(f => f.IsArchived).IsRequired();
 
         builder.Entity<Favorite>()
             .HasIndex(f => new { f.UserId, f.PromotionId })

@@ -32,10 +32,25 @@ public class Favorite : IEntityWithCreatedUpdatedDate
     public bool BelongsToUser(string userId) =>
         string.Equals(UserId, userId, StringComparison.Ordinal);
 
+    public bool Archive(string userId)
+    {
+        if (!BelongsToUser(userId)) return false;
+        IsArchived = true;
+        return true;
+    }
+
+    public bool Restore(string userId)
+    {
+        if (!BelongsToUser(userId)) return false;
+        IsArchived = false;
+        return true;
+    }
+
     public int    Id          { get; private set; }
     public string FavoriteId  { get; private set; }
     public string UserId      { get; private set; }
     public string PromotionId { get; private set; }
+    public bool   IsArchived  { get; private set; }
 
     [Column("CreatedAt")] public DateTimeOffset? CreatedDate { get; set; }
     [Column("UpdatedAt")] public DateTimeOffset? UpdatedDate { get; set; }

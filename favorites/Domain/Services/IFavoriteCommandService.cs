@@ -7,4 +7,6 @@ public interface IFavoriteCommandService
 {
     Task<Favorite?> Handle(SaveFavoriteCommand command);
     Task<bool>      Handle(RemoveFavoriteCommand command);
+    Task<bool>      Handle(ArchiveFavoriteCommand command);
+    Task<bool>      Handle(RestoreFavoriteCommand command);
 }

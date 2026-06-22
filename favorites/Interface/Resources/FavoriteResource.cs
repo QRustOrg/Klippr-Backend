@@ -5,4 +5,5 @@ public record FavoriteResource(
     string          FavoriteId,
     string          UserId,
     string          PromotionId,
+    bool            IsArchived,
     DateTimeOffset? CreatedAt);
