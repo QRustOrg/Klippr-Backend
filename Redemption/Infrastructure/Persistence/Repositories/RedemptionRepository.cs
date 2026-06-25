@@ -1,4 +1,5 @@
 using Klippr_Backend.Redemption.Domain.Repositories;
+using Klippr_Backend.Redemption.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using RedemptionAggregate = Klippr_Backend.Redemption.Domain.Aggregates.Redemption;
 
@@ -27,6 +28,27 @@ public class RedemptionRepository(RedemptionDbContext dbContext) : IRedemptionRe
         return dbContext.Redemptions
             .AsNoTracking()
             .FirstOrDefaultAsync(redemption => redemption.UniqueToken == uniqueToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<RedemptionAggregate>> FindByConsumerAndPromotionAsync(Guid consumerId, string promotionId)
+    {
+        return await dbContext.Redemptions
+            .AsNoTracking()
+            .Where(redemption => redemption.ConsumerId == consumerId && redemption.PromotionId == promotionId)
+            .OrderByDescending(redemption => redemption.GeneratedAt)
+            .ToListAsync()
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public Task<int> CountFinalizedByPromotionIdAsync(string promotionId)
+    {
+        return dbContext.Redemptions
+            .AsNoTracking()
+            .CountAsync(redemption =>
+                redemption.PromotionId == promotionId &&
+                (redemption.Status == RedemptionStatus.Redeemed || redemption.Status == RedemptionStatus.Blocked));
     }
 
     /// <inheritdoc />

@@ -1,4 +1,5 @@
 using Klippr_Backend.Redemption.Domain.Queries;
+using Klippr_Backend.Redemption.Domain.Exceptions;
 using Klippr_Backend.Redemption.Domain.Services;
 using Klippr_Backend.Redemption.Interface.Transform;
 using Microsoft.AspNetCore.Mvc;
@@ -46,10 +47,61 @@ public class RedemptionController(
             if (redemption is null)
                 return BadRequest("No se pudo generar el canje.");
 
-            return CreatedAtRoute(
-                GetRedemptionByIdRouteName,
-                new { redemptionId = redemption.Id },
-                RedemptionResourceFromEntityAssembler.ToResource(redemption));
+            var resourceResult = RedemptionResourceFromEntityAssembler.ToResource(redemption.Redemption);
+
+            return redemption.Created
+                ? CreatedAtRoute(
+                    GetRedemptionByIdRouteName,
+                    new { redemptionId = redemption.Redemption.Id },
+                    resourceResult)
+                : Ok(resourceResult);
+        }
+        catch (RedemptionConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(exception.Message);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// Confirma el uso de un canje existente desde el token opaco del QR.
+    /// </summary>
+    /// <param name="uniqueToken">Token unico contenido en el QR.</param>
+    /// <param name="resource">Datos de confirmacion del canje.</param>
+    /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
+    /// <returns>Resultado HTTP con el canje confirmado.</returns>
+    [HttpPost("tokens/{uniqueToken:guid}/confirm")]
+    [SwaggerOperation(
+        Summary = "Confirmar canje por token",
+        Description = "Registra el uso efectivo de un canje a partir del token opaco contenido en el QR. Valida negocio, vigencia y estado antes de bloquear el canje.",
+        OperationId = "ConfirmRedemptionByToken")]
+    public async Task<IActionResult> ConfirmByTokenAsync(
+        Guid uniqueToken,
+        [FromBody] ConfirmRedemptionResource resource,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var command = ConfirmRedemptionByTokenCommandFromResourceAssembler.ToCommand(uniqueToken, resource);
+            var redemption = await redemptionCommandService
+                .Handle(command)
+                .ConfigureAwait(false);
+
+            if (redemption is null)
+                return NotFound();
+
+            return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption));
+        }
+        catch (RedemptionConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
         }
         catch (ArgumentException exception)
         {

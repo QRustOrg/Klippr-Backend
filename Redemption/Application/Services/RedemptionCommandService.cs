@@ -1,6 +1,11 @@
 using Klippr_Backend.Redemption.Domain.Commands;
+using Klippr_Backend.Promotions.Domain.Queries;
+using Klippr_Backend.Promotions.Domain.Services;
+using Klippr_Backend.Analytics.Interface.Facade;
+using Klippr_Backend.Redemption.Domain.Exceptions;
 using Klippr_Backend.Redemption.Domain.Repositories;
 using Klippr_Backend.Redemption.Domain.Services;
+using Klippr_Backend.Redemption.Domain.ValueObjects;
 using RedemptionAggregate = Klippr_Backend.Redemption.Domain.Aggregates.Redemption;
 
 namespace Klippr_Backend.Redemption.Application.Services;
@@ -12,11 +17,41 @@ namespace Klippr_Backend.Redemption.Application.Services;
 /// <remarks>
 /// Coordina repositorio y agregado sin duplicar reglas de negocio. Las invariantes permanecen dentro de <see cref="RedemptionAggregate"/>.
 /// </remarks>
-public class RedemptionCommandService(IRedemptionRepository redemptionRepository) : IRedemptionCommandService
+public class RedemptionCommandService(
+    IRedemptionRepository redemptionRepository,
+    IPromotionQueryService promotionQueryService,
+    AnalyticsContextFacade analyticsContextFacade) : IRedemptionCommandService
 {
     /// <inheritdoc />
-    public async Task<RedemptionAggregate?> Handle(RedeemPromotionCommand command)
+    public async Task<RedeemPromotionResult?> Handle(RedeemPromotionCommand command)
     {
+        var now = DateTimeOffset.UtcNow;
+        var existingRedemptions = await redemptionRepository
+            .FindByConsumerAndPromotionAsync(command.ConsumerId, command.PromotionId)
+            .ConfigureAwait(false);
+
+        if (existingRedemptions.Any(IsFinalized))
+            throw new RedemptionConflictException("Ya canjeaste esta promoción.");
+
+        var activeRedemption = existingRedemptions
+            .FirstOrDefault(redemption =>
+                redemption.Status == RedemptionStatus.Generated &&
+                !redemption.IsExpired(now));
+
+        if (activeRedemption is not null)
+            return new RedeemPromotionResult(activeRedemption, Created: false);
+
+        foreach (var expiredRedemption in existingRedemptions.Where(redemption =>
+                     redemption.Status == RedemptionStatus.Generated &&
+                     redemption.IsExpired(now)))
+        {
+            expiredRedemption.Expire(now);
+            redemptionRepository.Update(expiredRedemption);
+        }
+
+        await EnsurePromotionCanReceiveRedemptionAsync(command)
+            .ConfigureAwait(false);
+
         var redemption = RedemptionAggregate.Create(command);
 
         await redemptionRepository
@@ -27,7 +62,7 @@ public class RedemptionCommandService(IRedemptionRepository redemptionRepository
             .SaveChangesAsync()
             .ConfigureAwait(false);
 
-        return redemption;
+        return new RedeemPromotionResult(redemption, Created: true);
     }
 
     /// <inheritdoc />
@@ -37,13 +72,43 @@ public class RedemptionCommandService(IRedemptionRepository redemptionRepository
             .FindByIdAsync(command.RedemptionId)
             .ConfigureAwait(false);
 
+        return await ConfirmAsync(
+                redemption,
+                command.BusinessId,
+                command.ValidationMethod,
+                command.ConfirmedAt)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<RedemptionAggregate?> Handle(ConfirmRedemptionByTokenCommand command)
+    {
+        var redemption = await redemptionRepository
+            .FindByUniqueTokenAsync(command.UniqueToken)
+            .ConfigureAwait(false);
+
+        return await ConfirmAsync(
+                redemption,
+                command.BusinessId,
+                command.ValidationMethod,
+                command.ConfirmedAt)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<RedemptionAggregate?> ConfirmAsync(
+        RedemptionAggregate? redemption,
+        Guid businessId,
+        RedemptionValidationMethod validationMethod,
+        DateTimeOffset confirmedAt)
+    {
         if (redemption is null)
             return null;
 
-        if (redemption.BusinessId != command.BusinessId)
+        if (redemption.BusinessId != businessId)
             throw new InvalidOperationException("El negocio no esta autorizado para confirmar este canje.");
 
-        redemption.Confirm(command.ConfirmedAt, command.ValidationMethod);
+        redemption.Confirm(confirmedAt, validationMethod);
+        redemption.Block(confirmedAt);
 
         redemptionRepository.Update(redemption);
 
@@ -51,6 +116,39 @@ public class RedemptionCommandService(IRedemptionRepository redemptionRepository
             .SaveChangesAsync()
             .ConfigureAwait(false);
 
+        if (Guid.TryParse(redemption.PromotionId, out var campaignId))
+        {
+            await analyticsContextFacade
+                .RegisterRedemptionAsync(campaignId, redemption.BusinessId)
+                .ConfigureAwait(false);
+        }
+
         return redemption;
     }
+
+    private async Task EnsurePromotionCanReceiveRedemptionAsync(RedeemPromotionCommand command)
+    {
+        if (!Guid.TryParse(command.PromotionId, out var promotionGuid))
+            throw new ArgumentException("Promotion id must be a valid GUID.", nameof(command.PromotionId));
+
+        var promotion = await promotionQueryService
+            .GetByIdAsync(new GetPromotionByIdQuery(promotionGuid))
+            .ConfigureAwait(false);
+
+        if (promotion is null)
+            throw new ArgumentException("Promoción no encontrada.", nameof(command.PromotionId));
+
+        if (promotion.RedemptionCap is not { } redemptionCap)
+            return;
+
+        var finalizedCount = await redemptionRepository
+            .CountFinalizedByPromotionIdAsync(command.PromotionId)
+            .ConfigureAwait(false);
+
+        if (finalizedCount >= redemptionCap)
+            throw new RedemptionConflictException("Esta promoción ya alcanzó el límite de canjes.");
+    }
+
+    private static bool IsFinalized(RedemptionAggregate redemption) =>
+        redemption.Status is RedemptionStatus.Redeemed or RedemptionStatus.Blocked;
 }

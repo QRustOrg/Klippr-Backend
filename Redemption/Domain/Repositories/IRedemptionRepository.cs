@@ -26,6 +26,21 @@ public interface IRedemptionRepository
     Task<RedemptionAggregate?> FindByUniqueTokenAsync(Guid uniqueToken);
 
     /// <summary>
+    /// Obtiene los canjes de un consumidor para una promocion concreta.
+    /// </summary>
+    /// <param name="consumerId">Identificador del consumidor consultado.</param>
+    /// <param name="promotionId">Identificador de la promocion consultada.</param>
+    /// <returns>Coleccion de canjes ordenados del mas reciente al mas antiguo.</returns>
+    Task<IReadOnlyList<RedemptionAggregate>> FindByConsumerAndPromotionAsync(Guid consumerId, string promotionId);
+
+    /// <summary>
+    /// Cuenta los canjes finalizados para una promocion.
+    /// </summary>
+    /// <param name="promotionId">Identificador de la promocion consultada.</param>
+    /// <returns>Numero de canjes canjeados o bloqueados.</returns>
+    Task<int> CountFinalizedByPromotionIdAsync(string promotionId);
+
+    /// <summary>
     /// Obtiene los canjes asociados a un consumidor.
     /// </summary>
     /// <param name="consumerId">Identificador del consumidor consultado.</param>
