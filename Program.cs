@@ -6,6 +6,12 @@ using Klippr_Backend.Analytics.Domain.Repositories;
 using Klippr_Backend.Analytics.Domain.Services;
 using Klippr_Backend.Analytics.Infrastructure.Persistence;
 using Klippr_Backend.Analytics.Interface.Facade;
+using Klippr_Backend.Community.Application.Services;
+using Klippr_Backend.Community.Domain.Repositories;
+using Klippr_Backend.Community.Domain.Services;
+using Klippr_Backend.Community.Infrastructure.Persistence;
+using Klippr_Backend.Community.Infrastructure.Persistence.Repositories;
+using Klippr_Backend.Community.Interface.Transform;
 using Klippr_Backend.Favorites.Application.Services;
 using Klippr_Backend.Favorites.Domain.Repositories;
 using Klippr_Backend.Favorites.Domain.Services;
@@ -28,12 +34,6 @@ using Klippr_Backend.Redemption.Infrastructure.EventPublishing;
 using Klippr_Backend.Redemption.Infrastructure.Persistence;
 using Klippr_Backend.Redemption.Infrastructure.Persistence.Repositories;
 using Klippr_Backend.Redemption.Infrastructure.Signing;
-using Klippr_Backend.Reviews.Application.Services;
-using Klippr_Backend.Reviews.Domain.Repositories;
-using Klippr_Backend.Reviews.Domain.Services;
-using Klippr_Backend.Reviews.Infrastructure.Persistence;
-using Klippr_Backend.Reviews.Infrastructure.Persistence.Repositories;
-using Klippr_Backend.Reviews.Interface.Transform;
 using Klippr_Backend.Shared.Domain.Repositories;
 using Klippr_Backend.Shared.Infrastructure.EventPublishing;
 using Klippr_Backend.Shared.Infrastructure.Persistence.EFC.Configuration;
@@ -139,14 +139,6 @@ builder.Services.AddScoped<IFavoriteQueryService, FavoriteQueryService>();
 builder.Services.AddScoped<IFavoritesContextFacade, FavoritesContextFacade>();
 
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
-
-// Community Bounded Context (fully-qualified to avoid name collisions with the Reviews context)
-builder.Services.AddScoped<Klippr_Backend.Community.Domain.Repositories.IReviewRepository,
-    Klippr_Backend.Community.Infrastructure.Persistence.EFC.Repositories.ReviewRepository>();
-builder.Services.AddScoped<Klippr_Backend.Community.Domain.Services.IReviewCommandService,
-    Klippr_Backend.Community.Application.Internal.CommandServices.ReviewCommandService>();
-builder.Services.AddScoped<Klippr_Backend.Community.Domain.Services.IReviewQueryServices,
-    Klippr_Backend.Community.Application.Internal.QueryServices.ReviewQueryService>();
 
 // Setting Bounded Context
 builder.Services.AddScoped<Klippr_Backend.Setting.Domain.Repositories.IPreferenceRepository,
