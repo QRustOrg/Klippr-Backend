@@ -4,11 +4,14 @@ using Klippr_Backend.Analytics.Domain.Services;
 using Klippr_Backend.Analytics.Interface.Assemblers;
 using Klippr_Backend.Analytics.Interface.Resources;
 using Klippr_Backend.Analytics.Domain.ValueObjects;
+using Klippr_Backend.Profile.Interface.Facade;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Klippr_Backend.Analytics.Interface.Controllers;
 
 using System.Net.Mime;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 /// <summary>
@@ -23,10 +26,15 @@ using Swashbuckle.AspNetCore.Annotations;
 [Route("api/analytics")]
 [Produces(MediaTypeNames.Application.Json)]
 [Tags("Analytics")]
+[Authorize]
 public class AnalyticsController(
     IAnalyticsCommandService commandService,
-    IAnalyticsQueryService queryService) : ControllerBase
+    IAnalyticsQueryService queryService,
+    ProfileContextFacade profileContextFacade) : ControllerBase
 {
+    private Guid GetUserId() =>
+        Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new UnauthorizedAccessException("User ID not found in token."));
     /// <summary>
     /// Actualiza métricas del sistema.
     /// </summary>
@@ -61,6 +69,7 @@ public class AnalyticsController(
     /// </summary>
     /// <param name="businessId">Identificador del negocio.</param>
     [HttpGet("dashboard/{businessId:guid}")]
+    [Authorize(Roles = "BUSINESS,ADMIN")]
     [SwaggerOperation(
         Summary = "Obtiene dashboard de negocio",
         Description = "Devuelve métricas agregadas de un negocio específico",
@@ -69,6 +78,13 @@ public class AnalyticsController(
     [SwaggerResponse(404, "Negocio no encontrado")]
     public async Task<IActionResult> GetDashboardAsync(Guid businessId)
     {
+        if (!User.IsInRole("ADMIN"))
+        {
+            var businessProfile = await profileContextFacade.GetBusinessProfileByUserIdAsync(GetUserId());
+            if (businessProfile is null || businessProfile.Id != businessId)
+                return Forbid();
+        }
+
         var query = new GetBusinessDashboardQuery(businessId);
         var metrics = await queryService.Handle(query);
 
@@ -124,6 +140,7 @@ public class AnalyticsController(
         try
         {
             var command = RegisterAbuseReportCommandFromResourceAssembler.ToCommand(resource);
+            command.ReportedBy = GetUserId();
             await commandService.Handle(command);
 
             return NoContent();

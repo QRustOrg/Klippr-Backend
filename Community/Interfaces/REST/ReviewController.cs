@@ -4,6 +4,7 @@ using Klippr_Backend.Community.Domain.Model.Queries;
 using Klippr_Backend.Community.Domain.Services;
 using Klippr_Backend.Community.Interfaces.REST.Resources;
 using Klippr_Backend.Community.Interfaces.REST.Transform;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -56,6 +57,7 @@ public class ReviewsController(
         OperationId = "CreateCommunityReview")]
     [SwaggerResponse(StatusCodes.Status201Created, "The Review was created", typeof(ReviewResource))]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The Review could not be created")]
+    [Authorize]
     public async Task<IActionResult> CreateReview([FromBody] CreateReviewResource resource)
     {
         var createReviewCommand = CreateReviewCommandFromResourceAssembler.ToCommandFromResource(resource);
@@ -74,6 +76,7 @@ public class ReviewsController(
     [SwaggerResponse(StatusCodes.Status200OK, "The Review was updated", typeof(ReviewResource))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Review not found")]
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The Review could not be updated")]
+    [Authorize]
     public async Task<IActionResult> UpdateReview(int reviewId, [FromBody] UpdateReviewResource resource)
     {
         var command = UpdateReviewCommandFromResourceAssembler.ToCommandFromResource(reviewId, resource);
@@ -91,6 +94,7 @@ public class ReviewsController(
         OperationId = "DeleteReviewById")]
     [SwaggerResponse(StatusCodes.Status204NoContent, "The Review was deleted")]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Review not found")]
+    [Authorize]
     public async Task<IActionResult> DeleteReview(int reviewId)
     {
         var command = new DeleteReviewByIdCommand(reviewId);
