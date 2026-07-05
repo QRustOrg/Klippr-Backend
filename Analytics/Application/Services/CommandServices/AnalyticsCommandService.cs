@@ -51,6 +51,22 @@ public class AnalyticsCommandService : IAnalyticsCommandService
         await _metricsRepository.UpdateAsync(metrics);
     }
 
+    public async Task Handle(RegisterViewCommand command)
+    {
+        var metrics = await _metricsRepository.FindByCampaignIdAsync(command.CampaignId);
+
+        if (metrics == null)
+        {
+            metrics = new CampaignMetrics(command.CampaignId, command.BusinessId);
+            metrics.AddViews(1);
+            await _metricsRepository.AddAsync(metrics);
+            return;
+        }
+
+        metrics.AddViews(1);
+        await _metricsRepository.UpdateAsync(metrics);
+    }
+
     public async Task Handle(RegisterAbuseReportCommand command)
     {
         var report = new AbuseReport(

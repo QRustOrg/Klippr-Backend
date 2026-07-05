@@ -246,6 +246,7 @@ public class RedemptionReusePolicyTests
     private sealed class FakeAnalyticsCommandService : IAnalyticsCommandService
     {
         public Task Handle(UpdateMetricsCommand command) => Task.CompletedTask;
+        public Task Handle(RegisterViewCommand command) => Task.CompletedTask;
         public Task Handle(RegisterAbuseReportCommand command) => Task.CompletedTask;
         public Task Handle(UpdateAbuseReportStatusCommand command) => Task.CompletedTask;
     }
