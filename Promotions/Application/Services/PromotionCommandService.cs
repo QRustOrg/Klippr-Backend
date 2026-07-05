@@ -115,6 +115,10 @@ public class PromotionCommandService(IPromotionRepository promotionRepository) :
             .ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public Task<bool> TryConsumeRedemptionSlotAsync(Guid promotionId, CancellationToken cancellationToken = default) =>
+        promotionRepository.TryConsumeRedemptionSlotAsync(promotionId, cancellationToken);
+
     private async Task<Promotion> GetExistingPromotionAsync(
         Guid promotionId,
         CancellationToken cancellationToken)

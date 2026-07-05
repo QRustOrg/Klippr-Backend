@@ -21,6 +21,7 @@ namespace Klippr_Backend.Redemption.Application.Services;
 public class RedemptionCommandService(
     IRedemptionRepository redemptionRepository,
     IPromotionQueryService promotionQueryService,
+    IPromotionCommandService promotionCommandService,
     AnalyticsContextFacade analyticsContextFacade) : IRedemptionCommandService
 {
     /// <inheritdoc />
