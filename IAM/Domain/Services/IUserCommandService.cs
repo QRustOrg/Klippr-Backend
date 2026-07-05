@@ -12,8 +12,8 @@ public interface IUserCommandService
     Task<User> DeactivateUserAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<User> ActivateUserAsync(Guid userId, CancellationToken cancellationToken = default);
 
-    /// <summary>Paso 1 "olvidé mi contraseña": indica si existe un usuario con ese email.</summary>
-    Task<bool> VerifyEmailExistsAsync(ForgotPasswordCommand command, CancellationToken cancellationToken = default);
+    /// <summary>Paso 1 "olvidé mi contraseña": si el usuario existe, genera y persiste un código OTP de un solo uso con expiración.</summary>
+    Task<PasswordResetRequestResult> RequestPasswordResetAsync(ForgotPasswordCommand command, CancellationToken cancellationToken = default);
 
     /// <summary>Paso 2 "olvidé mi contraseña": fija una nueva contraseña para el usuario identificado por email.</summary>
     Task<User> ResetPasswordAsync(ResetPasswordCommand command, CancellationToken cancellationToken = default);

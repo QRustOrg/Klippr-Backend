@@ -1,4 +1,5 @@
 using Klippr_Backend.Redemption.Domain.Commands;
+using Klippr_Backend.Promotions.Domain.Aggregates;
 using Klippr_Backend.Promotions.Domain.Queries;
 using Klippr_Backend.Promotions.Domain.Services;
 using Klippr_Backend.Analytics.Interface.Facade;
@@ -26,6 +27,13 @@ public class RedemptionCommandService(
     public async Task<RedeemPromotionResult?> Handle(RedeemPromotionCommand command)
     {
         var now = DateTimeOffset.UtcNow;
+
+        var promotion = await GetPromotionOrThrowAsync(command.PromotionId)
+            .ConfigureAwait(false);
+
+        // BusinessId no se confía del cliente: se resuelve del dueño real de la promoción.
+        command = command with { BusinessId = promotion.BusinessId };
+
         var existingRedemptions = await redemptionRepository
             .FindByConsumerAndPromotionAsync(command.ConsumerId, command.PromotionId)
             .ConfigureAwait(false);
@@ -49,7 +57,7 @@ public class RedemptionCommandService(
             redemptionRepository.Update(expiredRedemption);
         }
 
-        await EnsurePromotionCanReceiveRedemptionAsync(command)
+        await EnsurePromotionCanReceiveRedemptionAsync(promotion)
             .ConfigureAwait(false);
 
         var redemption = RedemptionAggregate.Create(command);
@@ -126,23 +134,28 @@ public class RedemptionCommandService(
         return redemption;
     }
 
-    private async Task EnsurePromotionCanReceiveRedemptionAsync(RedeemPromotionCommand command)
+    private async Task<Promotion> GetPromotionOrThrowAsync(string promotionId)
     {
-        if (!Guid.TryParse(command.PromotionId, out var promotionGuid))
-            throw new ArgumentException("Promotion id must be a valid GUID.", nameof(command.PromotionId));
+        if (!Guid.TryParse(promotionId, out var promotionGuid))
+            throw new ArgumentException("Promotion id must be a valid GUID.", nameof(promotionId));
 
         var promotion = await promotionQueryService
             .GetByIdAsync(new GetPromotionByIdQuery(promotionGuid))
             .ConfigureAwait(false);
 
         if (promotion is null)
-            throw new ArgumentException("Promoción no encontrada.", nameof(command.PromotionId));
+            throw new ArgumentException("Promoción no encontrada.", nameof(promotionId));
 
+        return promotion;
+    }
+
+    private async Task EnsurePromotionCanReceiveRedemptionAsync(Promotion promotion)
+    {
         if (promotion.RedemptionCap is not { } redemptionCap)
             return;
 
         var finalizedCount = await redemptionRepository
-            .CountFinalizedByPromotionIdAsync(command.PromotionId)
+            .CountFinalizedByPromotionIdAsync(promotion.Id.ToString())
             .ConfigureAwait(false);
 
         if (finalizedCount >= redemptionCap)
