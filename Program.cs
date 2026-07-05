@@ -20,12 +20,14 @@ using Klippr_Backend.Promotions.Domain.Services;
 using Klippr_Backend.Promotions.Infrastructure.EventPublishing;
 using Klippr_Backend.Promotions.Infrastructure.Persistence;
 using Klippr_Backend.Promotions.Interface.Transform;
+using Klippr_Backend.Redemption.Application.OutboundServices.Signing;
 using Klippr_Backend.Redemption.Application.Services;
 using Klippr_Backend.Redemption.Domain.Repositories;
 using Klippr_Backend.Redemption.Domain.Services;
 using Klippr_Backend.Redemption.Infrastructure.EventPublishing;
 using Klippr_Backend.Redemption.Infrastructure.Persistence;
 using Klippr_Backend.Redemption.Infrastructure.Persistence.Repositories;
+using Klippr_Backend.Redemption.Infrastructure.Signing;
 using Klippr_Backend.Reviews.Application.Services;
 using Klippr_Backend.Reviews.Domain.Repositories;
 using Klippr_Backend.Reviews.Domain.Services;
@@ -52,6 +54,11 @@ var jwtExpirationMinutes = int.TryParse(builder.Configuration["Jwt:ExpirationMin
     : 60;
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "klippr-iam";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "klippr-api";
+var redemptionHmacSecretKey = builder.Configuration["Redemption:HmacSecretKey"]
+                              ?? throw new InvalidOperationException("Configuration value 'Redemption:HmacSecretKey' is required.");
+var redemptionQrExpirationMinutes = int.TryParse(builder.Configuration["Redemption:QrExpirationMinutes"], out var configuredQrExpirationMinutes)
+    ? configuredQrExpirationMinutes
+    : 120;
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
@@ -110,9 +117,15 @@ builder.Services.AddScoped<PromotionEventPublisher>();
 builder.Services.AddScoped<PromotionEnrichmentService>();
 
 builder.Services.AddScoped<IRedemptionRepository, RedemptionRepository>();
-builder.Services.AddScoped<IRedemptionCommandService, RedemptionCommandService>();
+builder.Services.AddScoped<IRedemptionCommandService>(sp => new RedemptionCommandService(
+    sp.GetRequiredService<IRedemptionRepository>(),
+    sp.GetRequiredService<IPromotionQueryService>(),
+    sp.GetRequiredService<IPromotionCommandService>(),
+    sp.GetRequiredService<AnalyticsContextFacade>(),
+    redemptionQrExpirationMinutes));
 builder.Services.AddScoped<IRedemptionQueryService, RedemptionQueryService>();
 builder.Services.AddScoped<RedemptionEventPublisher>();
+builder.Services.AddScoped<IRedemptionTokenSigner>(_ => new RedemptionTokenSigner(redemptionHmacSecretKey));
 
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<IReviewQueryService, ReviewQueryService>();

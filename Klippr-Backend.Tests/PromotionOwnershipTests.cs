@@ -111,5 +111,8 @@ public class PromotionOwnershipTests
         }
 
         public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task<bool> TryConsumeRedemptionSlotAsync(Guid promotionId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
     }
 }

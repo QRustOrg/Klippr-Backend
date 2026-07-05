@@ -22,7 +22,8 @@ public class RedemptionCommandService(
     IRedemptionRepository redemptionRepository,
     IPromotionQueryService promotionQueryService,
     IPromotionCommandService promotionCommandService,
-    AnalyticsContextFacade analyticsContextFacade) : IRedemptionCommandService
+    AnalyticsContextFacade analyticsContextFacade,
+    int qrExpirationMinutes = 120) : IRedemptionCommandService
 {
     /// <inheritdoc />
     public async Task<RedeemPromotionResult?> Handle(RedeemPromotionCommand command)
@@ -32,8 +33,13 @@ public class RedemptionCommandService(
         var promotion = await GetPromotionOrThrowAsync(command.PromotionId)
             .ConfigureAwait(false);
 
-        // BusinessId no se confía del cliente: se resuelve del dueño real de la promoción.
-        command = command with { BusinessId = promotion.BusinessId };
+        // BusinessId y ExpiresAt no se confían del cliente: BusinessId se resuelve del dueño real
+        // de la promoción y ExpiresAt se calcula server-side (antes venía del body del request).
+        command = command with
+        {
+            BusinessId = promotion.BusinessId,
+            ExpiresAt = now.AddMinutes(qrExpirationMinutes)
+        };
 
         var existingRedemptions = await redemptionRepository
             .FindByConsumerAndPromotionAsync(command.ConsumerId, command.PromotionId)
@@ -75,7 +81,7 @@ public class RedemptionCommandService(
     }
 
     /// <inheritdoc />
-    public async Task<RedemptionAggregate?> Handle(ConfirmRedemptionCommand command)
+    public async Task<RedemptionAggregate?> Handle(ConfirmRedemptionCommand command, CancellationToken cancellationToken = default)
     {
         var redemption = await redemptionRepository
             .FindByIdAsync(command.RedemptionId)
@@ -85,12 +91,13 @@ public class RedemptionCommandService(
                 redemption,
                 command.BusinessId,
                 command.ValidationMethod,
-                command.ConfirmedAt)
+                command.ConfirmedAt,
+                cancellationToken)
             .ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public async Task<RedemptionAggregate?> Handle(ConfirmRedemptionByTokenCommand command)
+    public async Task<RedemptionAggregate?> Handle(ConfirmRedemptionByTokenCommand command, CancellationToken cancellationToken = default)
     {
         var redemption = await redemptionRepository
             .FindByUniqueTokenAsync(command.UniqueToken)
@@ -100,7 +107,8 @@ public class RedemptionCommandService(
                 redemption,
                 command.BusinessId,
                 command.ValidationMethod,
-                command.ConfirmedAt)
+                command.ConfirmedAt,
+                cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -108,13 +116,26 @@ public class RedemptionCommandService(
         RedemptionAggregate? redemption,
         Guid businessId,
         RedemptionValidationMethod validationMethod,
-        DateTimeOffset confirmedAt)
+        DateTimeOffset confirmedAt,
+        CancellationToken cancellationToken)
     {
         if (redemption is null)
             return null;
 
         if (redemption.BusinessId != businessId)
             throw new InvalidOperationException("El negocio no esta autorizado para confirmar este canje.");
+
+        if (!Guid.TryParse(redemption.PromotionId, out var promotionGuid))
+            throw new ArgumentException("Promotion id must be a valid GUID.", nameof(redemption));
+
+        // Único guard real contra el límite de canjes: UPDATE atómico condicional,
+        // seguro bajo concurrencia sin transacciones ni locks explícitos.
+        var slotConsumed = await promotionCommandService
+            .TryConsumeRedemptionSlotAsync(promotionGuid, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!slotConsumed)
+            throw new RedemptionConflictException("Esta promoción ya alcanzó el límite de canjes.");
 
         redemption.Confirm(confirmedAt, validationMethod);
         redemption.Block(confirmedAt);
@@ -125,12 +146,9 @@ public class RedemptionCommandService(
             .SaveChangesAsync()
             .ConfigureAwait(false);
 
-        if (Guid.TryParse(redemption.PromotionId, out var campaignId))
-        {
-            await analyticsContextFacade
-                .RegisterRedemptionAsync(campaignId, redemption.BusinessId)
-                .ConfigureAwait(false);
-        }
+        await analyticsContextFacade
+            .RegisterRedemptionAsync(promotionGuid, redemption.BusinessId)
+            .ConfigureAwait(false);
 
         return redemption;
     }

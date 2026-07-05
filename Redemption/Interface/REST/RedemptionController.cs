@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Klippr_Backend.Profile.Interface.Facade;
+using Klippr_Backend.Redemption.Application.OutboundServices.Signing;
 using Klippr_Backend.Redemption.Domain.Queries;
 using Klippr_Backend.Redemption.Domain.Exceptions;
 using Klippr_Backend.Redemption.Domain.Services;
@@ -23,7 +24,8 @@ namespace Klippr_Backend.Redemption.Interface.REST;
 public class RedemptionController(
     IRedemptionCommandService redemptionCommandService,
     IRedemptionQueryService redemptionQueryService,
-    ProfileContextFacade profileContextFacade) : ControllerBase
+    ProfileContextFacade profileContextFacade,
+    IRedemptionTokenSigner redemptionTokenSigner) : ControllerBase
 {
     private const string GetRedemptionByIdRouteName = "GetRedemptionById";
 
@@ -57,7 +59,7 @@ public class RedemptionController(
             if (redemption is null)
                 return BadRequest("No se pudo generar el canje.");
 
-            var resourceResult = RedemptionResourceFromEntityAssembler.ToResource(redemption.Redemption);
+            var resourceResult = RedemptionResourceFromEntityAssembler.ToResource(redemption.Redemption, redemptionTokenSigner);
 
             return redemption.Created
                 ? CreatedAtRoute(
@@ -105,17 +107,20 @@ public class RedemptionController(
         if (businessProfile is null)
             return Forbid();
 
+        if (!redemptionTokenSigner.Verify(uniqueToken, resource.Signature ?? string.Empty))
+            return BadRequest(new { message = "Firma de token inválida." });
+
         try
         {
             var command = ConfirmRedemptionByTokenCommandFromResourceAssembler.ToCommand(uniqueToken, resource) with { BusinessId = businessProfile.Id };
             var redemption = await redemptionCommandService
-                .Handle(command)
+                .Handle(command, cancellationToken)
                 .ConfigureAwait(false);
 
             if (redemption is null)
                 return NotFound();
 
-            return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption));
+            return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption, redemptionTokenSigner));
         }
         catch (RedemptionConflictException exception)
         {
@@ -160,13 +165,17 @@ public class RedemptionController(
         {
             var command = ConfirmRedemptionCommandFromResourceAssembler.ToCommand(redemptionId, resource) with { BusinessId = businessProfile.Id };
             var redemption = await redemptionCommandService
-                .Handle(command)
+                .Handle(command, cancellationToken)
                 .ConfigureAwait(false);
 
             if (redemption is null)
                 return NotFound();
 
-            return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption));
+            return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption, redemptionTokenSigner));
+        }
+        catch (RedemptionConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
         }
         catch (ArgumentException exception)
         {
@@ -200,7 +209,7 @@ public class RedemptionController(
         if (redemption is null)
             return NotFound();
 
-        return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption));
+        return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption, redemptionTokenSigner));
     }
 
     /// <summary>
@@ -222,7 +231,7 @@ public class RedemptionController(
             .Handle(new GetRedemptionsByConsumerIdQuery(consumerId))
             .ConfigureAwait(false);
 
-        return Ok(RedemptionResourceFromEntityAssembler.ToResources(redemptions));
+        return Ok(RedemptionResourceFromEntityAssembler.ToResources(redemptions, redemptionTokenSigner));
     }
 
     /// <summary>
@@ -244,6 +253,6 @@ public class RedemptionController(
             .Handle(new GetRedemptionsByBusinessIdQuery(businessId))
             .ConfigureAwait(false);
 
-        return Ok(RedemptionResourceFromEntityAssembler.ToResources(redemptions));
+        return Ok(RedemptionResourceFromEntityAssembler.ToResources(redemptions, redemptionTokenSigner));
     }
 }

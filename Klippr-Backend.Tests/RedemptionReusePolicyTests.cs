@@ -115,7 +115,11 @@ public class RedemptionReusePolicyTests
     {
         var promotionService = new FakePromotionQueryService();
         promotionService.Promotions[promotionId] = CreatePromotion(promotionId, redemptionCap);
-        return new RedemptionCommandService(repository, promotionService, new AnalyticsContextFacade(new FakeAnalyticsCommandService()));
+        return new RedemptionCommandService(
+            repository,
+            promotionService,
+            new FakePromotionCommandService(),
+            new AnalyticsContextFacade(new FakeAnalyticsCommandService()));
     }
 
     private static RedeemPromotionCommand CreateCommand(Guid promotionId, Guid consumerId) => new(
@@ -216,6 +220,27 @@ public class RedemptionReusePolicyTests
             GetAllPromotionsQuery query,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<Promotion>>([]);
+    }
+
+    private sealed class FakePromotionCommandService : IPromotionCommandService
+    {
+        public Task<Guid> CreateAsync(CreatePromotionCommand command, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task UpdateAsync(UpdatePromotionCommand command, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task PublishAsync(PublishPromotionCommand command, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task CancelAsync(CancelPromotionCommand command, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task DeleteAsync(DeletePromotionCommand command, CancellationToken cancellationToken = default) =>
+            throw new NotImplementedException();
+
+        public Task<bool> TryConsumeRedemptionSlotAsync(Guid promotionId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
     }
 
     private sealed class FakeAnalyticsCommandService : IAnalyticsCommandService
