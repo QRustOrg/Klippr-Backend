@@ -77,6 +77,15 @@ public class IamDbContext : DbContext
                 .HasColumnName("updated_at")
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
 
+            entity.Property(e => e.PasswordResetCodeHash)
+                .HasColumnName("password_reset_code_hash")
+                .HasMaxLength(256)
+                .IsRequired(false);
+
+            entity.Property(e => e.PasswordResetCodeExpiresAt)
+                .HasColumnName("password_reset_code_expires_at")
+                .IsRequired(false);
+
             entity.HasIndex(e => e.Email)
                 .IsUnique();
         });

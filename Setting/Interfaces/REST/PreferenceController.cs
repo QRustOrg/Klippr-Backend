@@ -1,9 +1,12 @@
 using System.Net.Mime;
+using System.Security.Claims;
+using Klippr_Backend.Setting.Domain.Model.Aggregate;
 using Klippr_Backend.Setting.Domain.Model.Commands;
 using Klippr_Backend.Setting.Domain.Model.Queries;
 using Klippr_Backend.Setting.Domain.Services;
 using Klippr_Backend.Setting.Interfaces.REST.Resources;
 using Klippr_Backend.Setting.Interfaces.REST.Transform;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -13,10 +16,18 @@ namespace Klippr_Backend.Setting.Interfaces.REST;
 [Route("api/v1/[controller]")]
 [Produces(MediaTypeNames.Application.Json)]
 [SwaggerTag("Available Preference Endpoints")]
+[Authorize]
 public class PreferencesController(
     IPreferenceCommandService preferenceCommandService,
     IPreferenceQueryServices preferenceQueryServices) : ControllerBase
 {
+    private string GetUserId() =>
+        User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new UnauthorizedAccessException("User ID not found in token.");
+
+    private bool OwnsOrIsAdmin(Preference preference) =>
+        User.IsInRole("ADMIN") || string.Equals(preference.UserId, GetUserId(), StringComparison.Ordinal);
+
     /// Get Preference by id
     [HttpGet("{preferenceId:int}")]
     [SwaggerOperation(
@@ -29,13 +40,14 @@ public class PreferencesController(
     {
         var getPreferenceByIdQuery = new GetPreferenceByIdQuery(preferenceId);
         var preference = await preferenceQueryServices.Handle(getPreferenceByIdQuery);
-        if (preference is null) return NotFound();
+        if (preference is null || !OwnsOrIsAdmin(preference)) return NotFound();
         var resource = PreferenceResourceFromEntityAssembler.ToResourceFromEntity(preference);
         return Ok(resource);
     }
-    
+
     /// Get all Preferences
     [HttpGet]
+    [Authorize(Roles = "ADMIN")]
     [SwaggerOperation(
         Summary = "Get all Preferences",
         Description = "Get all Preferences",
@@ -47,7 +59,7 @@ public class PreferencesController(
         var preferenceResources = preferences.Select(PreferenceResourceFromEntityAssembler.ToResourceFromEntity);
         return Ok(preferenceResources);
     }
-    
+
     /// Create a new Preference
     [HttpPost]
     [SwaggerOperation(
@@ -58,13 +70,13 @@ public class PreferencesController(
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The Preference could not be created")]
     public async Task<IActionResult> CreatePreference([FromBody] CreatePreferenceResource resource)
     {
-        var createPreferenceCommand = CreatePreferenceCommandFromResourceAssembler.ToCommandFromResource(resource);
+        var createPreferenceCommand = CreatePreferenceCommandFromResourceAssembler.ToCommandFromResource(resource) with { UserId = GetUserId() };
         var preference = await preferenceCommandService.Handle(createPreferenceCommand);
         if (preference is null) return BadRequest();
         var preferenceResource = PreferenceResourceFromEntityAssembler.ToResourceFromEntity(preference);
         return CreatedAtAction(nameof(GetPreferenceById), new { preferenceId = preference.Id }, preferenceResource);
     }
-    
+
     /// Update a new Preference
     [HttpPut("{preferenceId:int}")]
     [SwaggerOperation(
@@ -76,13 +88,16 @@ public class PreferencesController(
     [SwaggerResponse(StatusCodes.Status400BadRequest, "The Preference could not be updated")]
     public async Task<IActionResult> UpdatePreference(int preferenceId, [FromBody] UpdatePreferenceResource resource)
     {
-        var command = UpdatePreferenceCommandFromResourceAssembler.ToCommandFromResource(preferenceId, resource);
+        var existing = await preferenceQueryServices.Handle(new GetPreferenceByIdQuery(preferenceId));
+        if (existing is null || !OwnsOrIsAdmin(existing)) return NotFound();
+
+        var command = UpdatePreferenceCommandFromResourceAssembler.ToCommandFromResource(preferenceId, resource) with { UserId = existing.UserId };
         var preference = await preferenceCommandService.Handle(command);
         if (preference is null) return NotFound();
         var preferenceResource = PreferenceResourceFromEntityAssembler.ToResourceFromEntity(preference);
         return Ok(preferenceResource);
     }
-    
+
     /// Delete a new Preference
     [HttpDelete("{preferenceId:int}")]
     [SwaggerOperation(
@@ -93,6 +108,9 @@ public class PreferencesController(
     [SwaggerResponse(StatusCodes.Status404NotFound, "Preference not found")]
     public async Task<IActionResult> DeletePreference(int preferenceId)
     {
+        var existing = await preferenceQueryServices.Handle(new GetPreferenceByIdQuery(preferenceId));
+        if (existing is null || !OwnsOrIsAdmin(existing)) return NotFound();
+
         var command = new DeletePreferenceByIdCommand(preferenceId);
         var result = await preferenceCommandService.Handle(command);
         if (!result) return NotFound();

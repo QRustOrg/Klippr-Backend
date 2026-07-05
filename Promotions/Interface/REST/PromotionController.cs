@@ -1,7 +1,11 @@
+using System.Security.Claims;
+using Klippr_Backend.Profile.Interface.Facade;
 using Klippr_Backend.Promotions.Domain.Commands;
+using Klippr_Backend.Promotions.Domain.Exceptions;
 using Klippr_Backend.Promotions.Domain.Queries;
 using Klippr_Backend.Promotions.Domain.Services;
 using Klippr_Backend.Promotions.Interface.Transform;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -19,9 +23,14 @@ namespace Klippr_Backend.Promotions.Interface.REST;
 public class PromotionController(
     IPromotionCommandService promotionCommandService,
     IPromotionQueryService promotionQueryService,
-    PromotionEnrichmentService promotionEnrichmentService) : ControllerBase
+    PromotionEnrichmentService promotionEnrichmentService,
+    ProfileContextFacade profileContextFacade) : ControllerBase
 {
     private const string GetPromotionByIdRouteName = "GetPromotionById";
+
+    private Guid GetUserId() =>
+        Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new UnauthorizedAccessException("User ID not found in token."));
 
     /// <summary>
     /// Crea una nueva promocion en estado borrador.
@@ -30,6 +39,7 @@ public class PromotionController(
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Resultado HTTP con el identificador de la promocion creada.</returns>
     [HttpPost]
+    [Authorize(Roles = "BUSINESS")]
     [SwaggerOperation(
         Summary = "Crear promocion",
         Description = "Crea una nueva promocion en estado borrador asociada a un negocio. La promocion no es visible para consumidores hasta que sea publicada.",
@@ -40,9 +50,16 @@ public class PromotionController(
         [FromBody] CreatePromotionResource resource,
         CancellationToken cancellationToken)
     {
+        var businessProfile = await profileContextFacade
+            .GetBusinessProfileByUserIdAsync(GetUserId(), cancellationToken)
+            .ConfigureAwait(false);
+
+        if (businessProfile is null)
+            return Forbid();
+
         try
         {
-            var command = CreatePromotionCommandFromResourceAssembler.ToCommand(resource);
+            var command = CreatePromotionCommandFromResourceAssembler.ToCommand(resource) with { BusinessId = businessProfile.Id };
             var promotionId = await promotionCommandService
                 .CreateAsync(command, cancellationToken)
                 .ConfigureAwait(false);
@@ -168,6 +185,7 @@ public class PromotionController(
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Resultado HTTP sin contenido cuando la actualizacion finaliza.</returns>
     [HttpPut("{promotionId:guid}")]
+    [Authorize(Roles = "BUSINESS")]
     [SwaggerOperation(
         Summary = "Actualizar promocion",
         Description = "Modifica los datos de una promocion que se encuentra en estado borrador. No es posible actualizar promociones publicadas o canceladas.",
@@ -177,9 +195,16 @@ public class PromotionController(
         [FromBody] UpdatePromotionResource resource,
         CancellationToken cancellationToken)
     {
+        var businessProfile = await profileContextFacade
+            .GetBusinessProfileByUserIdAsync(GetUserId(), cancellationToken)
+            .ConfigureAwait(false);
+
+        if (businessProfile is null)
+            return Forbid();
+
         try
         {
-            var command = UpdatePromotionCommandFromResourceAssembler.ToCommand(promotionId, resource);
+            var command = UpdatePromotionCommandFromResourceAssembler.ToCommand(promotionId, resource) with { RequestingBusinessId = businessProfile.Id };
 
             await promotionCommandService
                 .UpdateAsync(command, cancellationToken)
@@ -190,6 +215,10 @@ public class PromotionController(
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (UnauthorizedPromotionAccessException)
+        {
+            return Forbid();
         }
         catch (ArgumentException exception)
         {
@@ -209,6 +238,7 @@ public class PromotionController(
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Resultado HTTP sin contenido cuando la publicacion finaliza.</returns>
     [HttpPost("{promotionId:guid}/publish")]
+    [Authorize(Roles = "BUSINESS")]
     [SwaggerOperation(
         Summary = "Publicar promocion",
         Description = "Cambia el estado de una promocion de borrador a publicada, haciendola visible y disponible para canjes por consumidores. El negocio debe estar verificado.",
@@ -218,9 +248,16 @@ public class PromotionController(
         [FromBody] PublishPromotionResource resource,
         CancellationToken cancellationToken)
     {
+        var businessProfile = await profileContextFacade
+            .GetBusinessProfileByUserIdAsync(GetUserId(), cancellationToken)
+            .ConfigureAwait(false);
+
+        if (businessProfile is null)
+            return Forbid();
+
         try
         {
-            var command = PublishPromotionCommandFromResourceAssembler.ToCommand(promotionId, resource);
+            var command = PublishPromotionCommandFromResourceAssembler.ToCommand(promotionId, resource) with { RequestingBusinessId = businessProfile.Id };
 
             await promotionCommandService
                 .PublishAsync(command, cancellationToken)
@@ -231,6 +268,10 @@ public class PromotionController(
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (UnauthorizedPromotionAccessException)
+        {
+            return Forbid();
         }
         catch (ArgumentException exception)
         {
@@ -249,6 +290,7 @@ public class PromotionController(
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Resultado HTTP sin contenido cuando la cancelacion finaliza.</returns>
     [HttpPost("{promotionId:guid}/cancel")]
+    [Authorize(Roles = "BUSINESS")]
     [SwaggerOperation(
         Summary = "Cancelar promocion",
         Description = "Cancela una promocion en estado borrador o publicada, impidiendo nuevos canjes. Esta accion no elimina los canjes ya generados.",
@@ -257,10 +299,17 @@ public class PromotionController(
         Guid promotionId,
         CancellationToken cancellationToken)
     {
+        var businessProfile = await profileContextFacade
+            .GetBusinessProfileByUserIdAsync(GetUserId(), cancellationToken)
+            .ConfigureAwait(false);
+
+        if (businessProfile is null)
+            return Forbid();
+
         try
         {
             await promotionCommandService
-                .CancelAsync(new CancelPromotionCommand(promotionId), cancellationToken)
+                .CancelAsync(new CancelPromotionCommand(promotionId, businessProfile.Id), cancellationToken)
                 .ConfigureAwait(false);
 
             return NoContent();
@@ -268,6 +317,10 @@ public class PromotionController(
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (UnauthorizedPromotionAccessException)
+        {
+            return Forbid();
         }
         catch (InvalidOperationException exception)
         {
@@ -282,6 +335,7 @@ public class PromotionController(
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Resultado HTTP sin contenido cuando la eliminacion finaliza.</returns>
     [HttpDelete("{promotionId:guid}")]
+    [Authorize(Roles = "BUSINESS")]
     [SwaggerOperation(
         Summary = "Eliminar promocion",
         Description = "Elimina permanentemente una promocion del sistema. Solo aplica a promociones que no tengan canjes activos asociados.",
@@ -290,10 +344,17 @@ public class PromotionController(
         Guid promotionId,
         CancellationToken cancellationToken)
     {
+        var businessProfile = await profileContextFacade
+            .GetBusinessProfileByUserIdAsync(GetUserId(), cancellationToken)
+            .ConfigureAwait(false);
+
+        if (businessProfile is null)
+            return Forbid();
+
         try
         {
             await promotionCommandService
-                .DeleteAsync(new DeletePromotionCommand(promotionId), cancellationToken)
+                .DeleteAsync(new DeletePromotionCommand(promotionId, businessProfile.Id), cancellationToken)
                 .ConfigureAwait(false);
 
             return NoContent();
@@ -301,6 +362,10 @@ public class PromotionController(
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (UnauthorizedPromotionAccessException)
+        {
+            return Forbid();
         }
     }
 }

@@ -89,6 +89,20 @@ public class PromotionRepository(
     }
 
     /// <inheritdoc />
+    public async Task<bool> TryConsumeRedemptionSlotAsync(Guid promotionId, CancellationToken cancellationToken = default)
+    {
+        var affected = await dbContext.Promotions
+            .Where(promotion => promotion.Id == promotionId &&
+                                 (promotion.RedemptionCap == null || promotion.RedemptionsUsed < promotion.RedemptionCap))
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(promotion => promotion.RedemptionsUsed, promotion => promotion.RedemptionsUsed + 1),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return affected == 1;
+    }
+
+    /// <inheritdoc />
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var promotionsWithEvents = dbContext.ChangeTracker

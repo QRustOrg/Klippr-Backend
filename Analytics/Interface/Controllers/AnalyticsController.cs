@@ -4,11 +4,16 @@ using Klippr_Backend.Analytics.Domain.Services;
 using Klippr_Backend.Analytics.Interface.Assemblers;
 using Klippr_Backend.Analytics.Interface.Resources;
 using Klippr_Backend.Analytics.Domain.ValueObjects;
+using Klippr_Backend.Profile.Interface.Facade;
+using Klippr_Backend.Promotions.Domain.Queries;
+using Klippr_Backend.Promotions.Domain.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Klippr_Backend.Analytics.Interface.Controllers;
 
 using System.Net.Mime;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 /// <summary>
@@ -23,37 +28,46 @@ using Swashbuckle.AspNetCore.Annotations;
 [Route("api/analytics")]
 [Produces(MediaTypeNames.Application.Json)]
 [Tags("Analytics")]
+[Authorize]
 public class AnalyticsController(
     IAnalyticsCommandService commandService,
-    IAnalyticsQueryService queryService) : ControllerBase
+    IAnalyticsQueryService queryService,
+    ProfileContextFacade profileContextFacade,
+    IPromotionQueryService promotionQueryService) : ControllerBase
 {
+    private Guid GetUserId() =>
+        Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new UnauthorizedAccessException("User ID not found in token."));
+
     /// <summary>
-    /// Actualiza métricas del sistema.
+    /// Registra una vista de campaña.
     /// </summary>
     /// <remarks>
-    /// Recibe datos agregados de métricas y los persiste en el sistema.
+    /// A diferencia del comando interno usado para redenciones, este endpoint solo puede sumar
+    /// exactamente una vista por llamada (no acepta un conteo del cliente) y resuelve el negocio
+    /// dueño de la campaña desde la promoción, no del body del request.
     /// </remarks>
     [HttpPost("metrics")]
     [SwaggerOperation(
-        Summary = "Actualiza métricas del sistema",
-        Description = "Recibe y persiste métricas agregadas del sistema",
-        OperationId = "UpdateMetrics")]
-    [SwaggerResponse(204, "Métricas actualizadas correctamente")]
-    [SwaggerResponse(400, "Datos inválidos")]
-    public async Task<IActionResult> UpdateMetricsAsync(
-        [FromBody] UpdateMetricsResource resource)
+        Summary = "Registra una vista de campaña",
+        Description = "Suma una vista a las métricas de la campaña indicada.",
+        OperationId = "RegisterView")]
+    [SwaggerResponse(204, "Vista registrada correctamente")]
+    [SwaggerResponse(404, "Campaña no encontrada")]
+    public async Task<IActionResult> RegisterViewAsync(
+        [FromBody] RegisterViewResource resource,
+        CancellationToken cancellationToken)
     {
-        try
-        {
-            var command = UpdateMetricsCommandFromResourceAssembler.ToCommand(resource);
-            await commandService.Handle(command);
+        var promotion = await promotionQueryService
+            .GetByIdAsync(new GetPromotionByIdQuery(resource.CampaignId), cancellationToken)
+            .ConfigureAwait(false);
 
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        if (promotion is null)
+            return NotFound();
+
+        await commandService.Handle(new RegisterViewCommand(resource.CampaignId, promotion.BusinessId));
+
+        return NoContent();
     }
 
     /// <summary>
@@ -61,6 +75,7 @@ public class AnalyticsController(
     /// </summary>
     /// <param name="businessId">Identificador del negocio.</param>
     [HttpGet("dashboard/{businessId:guid}")]
+    [Authorize(Roles = "BUSINESS,ADMIN")]
     [SwaggerOperation(
         Summary = "Obtiene dashboard de negocio",
         Description = "Devuelve métricas agregadas de un negocio específico",
@@ -69,6 +84,13 @@ public class AnalyticsController(
     [SwaggerResponse(404, "Negocio no encontrado")]
     public async Task<IActionResult> GetDashboardAsync(Guid businessId)
     {
+        if (!User.IsInRole("ADMIN"))
+        {
+            var businessProfile = await profileContextFacade.GetBusinessProfileByUserIdAsync(GetUserId());
+            if (businessProfile is null || businessProfile.Id != businessId)
+                return Forbid();
+        }
+
         var query = new GetBusinessDashboardQuery(businessId);
         var metrics = await queryService.Handle(query);
 
@@ -124,6 +146,7 @@ public class AnalyticsController(
         try
         {
             var command = RegisterAbuseReportCommandFromResourceAssembler.ToCommand(resource);
+            command.ReportedBy = GetUserId();
             await commandService.Handle(command);
 
             return NoContent();

@@ -16,15 +16,21 @@ public class AuthenticationController : ControllerBase
     private readonly IUserCommandService _userCommandService;
     private readonly ITokenService _tokenService;
     private readonly IHashingService _hashingService;
+    private readonly IWebHostEnvironment _environment;
+    private readonly ILogger<AuthenticationController> _logger;
 
     public AuthenticationController(
         IUserCommandService userCommandService,
         ITokenService tokenService,
-        IHashingService hashingService)
+        IHashingService hashingService,
+        IWebHostEnvironment environment,
+        ILogger<AuthenticationController> logger)
     {
         _userCommandService = userCommandService ?? throw new ArgumentNullException(nameof(userCommandService));
         _tokenService = tokenService ?? throw new ArgumentNullException(nameof(tokenService));
         _hashingService = hashingService ?? throw new ArgumentNullException(nameof(hashingService));
+        _environment = environment ?? throw new ArgumentNullException(nameof(environment));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     [HttpPost("sign-in")]
@@ -150,12 +156,17 @@ public class AuthenticationController : ControllerBase
         try
         {
             var command = ForgotPasswordCommandFromResourceAssembler.Assemble(resource);
-            var exists = await _userCommandService.VerifyEmailExistsAsync(command, cancellationToken);
+            var result = await _userCommandService.RequestPasswordResetAsync(command, cancellationToken);
 
-            if (!exists)
+            if (!result.UserExists)
                 return NotFound(new { message = "Email not found." });
 
-            return Ok(new { message = "Email verified." });
+            _logger.LogInformation("Password reset code generated for {Email}: {Code}", resource.Email, result.Code);
+
+            if (_environment.IsDevelopment())
+                return Ok(new { message = "Reset code generated.", code = result.Code });
+
+            return Ok(new { message = "If the email exists, a reset code has been sent." });
         }
         catch (ArgumentException ex)
         {
@@ -170,7 +181,6 @@ public class AuthenticationController : ControllerBase
     [HttpPut("reset-password")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordResource resource, CancellationToken cancellationToken)
     {
         if (resource == null)
@@ -192,7 +202,8 @@ public class AuthenticationController : ControllerBase
         }
         catch (InvalidOperationException)
         {
-            return NotFound(new { message = "User not found." });
+            // Generic response to avoid user enumeration / code-guessing feedback.
+            return BadRequest(new { message = "Invalid or expired reset code." });
         }
         catch (Exception)
         {

@@ -1,7 +1,11 @@
+using System.Security.Claims;
+using Klippr_Backend.Profile.Interface.Facade;
+using Klippr_Backend.Redemption.Application.OutboundServices.Signing;
 using Klippr_Backend.Redemption.Domain.Queries;
 using Klippr_Backend.Redemption.Domain.Exceptions;
 using Klippr_Backend.Redemption.Domain.Services;
 using Klippr_Backend.Redemption.Interface.Transform;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -16,11 +20,18 @@ namespace Klippr_Backend.Redemption.Interface.REST;
 /// </remarks>
 [ApiController]
 [Route("api/redemptions")]
+[Authorize]
 public class RedemptionController(
     IRedemptionCommandService redemptionCommandService,
-    IRedemptionQueryService redemptionQueryService) : ControllerBase
+    IRedemptionQueryService redemptionQueryService,
+    ProfileContextFacade profileContextFacade,
+    IRedemptionTokenSigner redemptionTokenSigner) : ControllerBase
 {
     private const string GetRedemptionByIdRouteName = "GetRedemptionById";
+
+    private Guid GetUserId() =>
+        Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new UnauthorizedAccessException("User ID not found in token."));
 
     /// <summary>
     /// Genera un nuevo canje para una promocion.
@@ -29,6 +40,7 @@ public class RedemptionController(
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Resultado HTTP con el canje generado.</returns>
     [HttpPost]
+    [Authorize(Roles = "CONSUMER")]
     [SwaggerOperation(
         Summary = "Generar canje",
         Description = "Crea un nuevo canje para una promocion activa. Genera un codigo unico y un token antifraude asociados al consumidor y negocio indicados. El canje queda en estado generado hasta ser confirmado.",
@@ -39,7 +51,7 @@ public class RedemptionController(
     {
         try
         {
-            var command = RedeemPromotionCommandFromResourceAssembler.ToCommand(resource);
+            var command = RedeemPromotionCommandFromResourceAssembler.ToCommand(resource) with { ConsumerId = GetUserId() };
             var redemption = await redemptionCommandService
                 .Handle(command)
                 .ConfigureAwait(false);
@@ -47,7 +59,7 @@ public class RedemptionController(
             if (redemption is null)
                 return BadRequest("No se pudo generar el canje.");
 
-            var resourceResult = RedemptionResourceFromEntityAssembler.ToResource(redemption.Redemption);
+            var resourceResult = RedemptionResourceFromEntityAssembler.ToResource(redemption.Redemption, redemptionTokenSigner);
 
             return redemption.Created
                 ? CreatedAtRoute(
@@ -78,6 +90,7 @@ public class RedemptionController(
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Resultado HTTP con el canje confirmado.</returns>
     [HttpPost("tokens/{uniqueToken:guid}/confirm")]
+    [Authorize(Roles = "BUSINESS")]
     [SwaggerOperation(
         Summary = "Confirmar canje por token",
         Description = "Registra el uso efectivo de un canje a partir del token opaco contenido en el QR. Valida negocio, vigencia y estado antes de bloquear el canje.",
@@ -87,17 +100,27 @@ public class RedemptionController(
         [FromBody] ConfirmRedemptionResource resource,
         CancellationToken cancellationToken)
     {
+        var businessProfile = await profileContextFacade
+            .GetBusinessProfileByUserIdAsync(GetUserId(), cancellationToken)
+            .ConfigureAwait(false);
+
+        if (businessProfile is null)
+            return Forbid();
+
+        if (!redemptionTokenSigner.Verify(uniqueToken, resource.Signature ?? string.Empty))
+            return BadRequest(new { message = "Firma de token inválida." });
+
         try
         {
-            var command = ConfirmRedemptionByTokenCommandFromResourceAssembler.ToCommand(uniqueToken, resource);
+            var command = ConfirmRedemptionByTokenCommandFromResourceAssembler.ToCommand(uniqueToken, resource) with { BusinessId = businessProfile.Id };
             var redemption = await redemptionCommandService
-                .Handle(command)
+                .Handle(command, cancellationToken)
                 .ConfigureAwait(false);
 
             if (redemption is null)
                 return NotFound();
 
-            return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption));
+            return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption, redemptionTokenSigner));
         }
         catch (RedemptionConflictException exception)
         {
@@ -121,6 +144,7 @@ public class RedemptionController(
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Resultado HTTP con el canje confirmado.</returns>
     [HttpPost("{redemptionId:int}/confirm")]
+    [Authorize(Roles = "BUSINESS")]
     [SwaggerOperation(
         Summary = "Confirmar canje",
         Description = "Registra el uso efectivo de un canje por parte del negocio, cambiando su estado a canjeado. Valida que el canje pertenezca al negocio indicado y que no haya expirado.",
@@ -130,17 +154,28 @@ public class RedemptionController(
         [FromBody] ConfirmRedemptionResource resource,
         CancellationToken cancellationToken)
     {
+        var businessProfile = await profileContextFacade
+            .GetBusinessProfileByUserIdAsync(GetUserId(), cancellationToken)
+            .ConfigureAwait(false);
+
+        if (businessProfile is null)
+            return Forbid();
+
         try
         {
-            var command = ConfirmRedemptionCommandFromResourceAssembler.ToCommand(redemptionId, resource);
+            var command = ConfirmRedemptionCommandFromResourceAssembler.ToCommand(redemptionId, resource) with { BusinessId = businessProfile.Id };
             var redemption = await redemptionCommandService
-                .Handle(command)
+                .Handle(command, cancellationToken)
                 .ConfigureAwait(false);
 
             if (redemption is null)
                 return NotFound();
 
-            return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption));
+            return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption, redemptionTokenSigner));
+        }
+        catch (RedemptionConflictException exception)
+        {
+            return Conflict(new { message = exception.Message });
         }
         catch (ArgumentException exception)
         {
@@ -174,7 +209,7 @@ public class RedemptionController(
         if (redemption is null)
             return NotFound();
 
-        return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption));
+        return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption, redemptionTokenSigner));
     }
 
     /// <summary>
@@ -196,7 +231,7 @@ public class RedemptionController(
             .Handle(new GetRedemptionsByConsumerIdQuery(consumerId))
             .ConfigureAwait(false);
 
-        return Ok(RedemptionResourceFromEntityAssembler.ToResources(redemptions));
+        return Ok(RedemptionResourceFromEntityAssembler.ToResources(redemptions, redemptionTokenSigner));
     }
 
     /// <summary>
@@ -218,6 +253,6 @@ public class RedemptionController(
             .Handle(new GetRedemptionsByBusinessIdQuery(businessId))
             .ConfigureAwait(false);
 
-        return Ok(RedemptionResourceFromEntityAssembler.ToResources(redemptions));
+        return Ok(RedemptionResourceFromEntityAssembler.ToResources(redemptions, redemptionTokenSigner));
     }
 }

@@ -71,4 +71,16 @@ public interface IPromotionRepository
     /// </summary>
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Intenta consumir un cupo de canje de forma atómica contra <see cref="Aggregates.Promotion.RedemptionCap"/>.
+    /// </summary>
+    /// <param name="promotionId">Identificador de la promocion.</param>
+    /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
+    /// <returns><see langword="true"/> si el cupo fue consumido; <see langword="false"/> si ya se alcanzó el límite.</returns>
+    /// <remarks>
+    /// Implementado como un único <c>UPDATE ... WHERE</c> condicional para que sea seguro bajo
+    /// concurrencia sin requerir transacciones ni locks explícitos.
+    /// </remarks>
+    Task<bool> TryConsumeRedemptionSlotAsync(Guid promotionId, CancellationToken cancellationToken = default);
 }

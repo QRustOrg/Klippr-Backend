@@ -50,4 +50,12 @@ public interface IPromotionCommandService
     /// <param name="command">Datos requeridos para eliminar la promoción.</param>
     /// <param name="cancellationToken">Token para cancelar la operación asincrónica.</param>
     Task DeleteAsync(DeletePromotionCommand command, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Intenta consumir un cupo de canje de forma atómica contra el límite de la promoción.
+    /// </summary>
+    /// <param name="promotionId">Identificador de la promoción.</param>
+    /// <param name="cancellationToken">Token para cancelar la operación asincrónica.</param>
+    /// <returns><see langword="true"/> si el cupo fue consumido; <see langword="false"/> si ya se alcanzó el límite.</returns>
+    Task<bool> TryConsumeRedemptionSlotAsync(Guid promotionId, CancellationToken cancellationToken = default);
 }

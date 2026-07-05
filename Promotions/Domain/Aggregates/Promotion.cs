@@ -55,6 +55,17 @@ public class Promotion
     public int? RedemptionCap { get; private set; }
 
     /// <summary>
+    /// Cantidad de canjes ya consumidos contra <see cref="RedemptionCap"/>.
+    /// </summary>
+    /// <remarks>
+    /// Se actualiza exclusivamente mediante un <c>UPDATE</c> atómico condicional en
+    /// <c>PromotionRepository.TryConsumeRedemptionSlotAsync</c> (bounded context Redemption, al confirmar
+    /// un canje), no a través de ningún método del agregado — es el mecanismo que evita el race
+    /// condition de exceder el cupo bajo concurrencia sin necesitar transacciones explícitas.
+    /// </remarks>
+    public int RedemptionsUsed { get; private set; }
+
+    /// <summary>
     /// Clave de imagen promocional resuelta por los clientes contra assets locales.
     /// </summary>
     public string? ImageKey { get; private set; }

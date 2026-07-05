@@ -172,6 +172,7 @@ public class PromotionsImageKeyTests
 
     private static UpdatePromotionCommand UpdateCommand(Guid promotionId, string? imageKey) => new(
         promotionId,
+        Guid.NewGuid(),
         "Promo actualizada",
         "Descripcion actualizada",
         new DiscountValue(40, DiscountType.Percentage),

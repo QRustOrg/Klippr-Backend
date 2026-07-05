@@ -20,13 +20,15 @@ public interface IRedemptionCommandService
     /// Confirma el uso de un canje existente.
     /// </summary>
     /// <param name="command">Datos necesarios para confirmar el canje.</param>
+    /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Canje confirmado o <see langword="null"/> si no pudo completarse.</returns>
-    Task<RedemptionAggregate?> Handle(ConfirmRedemptionCommand command);
+    Task<RedemptionAggregate?> Handle(ConfirmRedemptionCommand command, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Confirma el uso de un canje existente a partir de su token unico.
     /// </summary>
     /// <param name="command">Datos necesarios para confirmar el canje por token.</param>
+    /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Canje confirmado o <see langword="null"/> si no pudo completarse.</returns>
-    Task<RedemptionAggregate?> Handle(ConfirmRedemptionByTokenCommand command);
+    Task<RedemptionAggregate?> Handle(ConfirmRedemptionByTokenCommand command, CancellationToken cancellationToken = default);
 }

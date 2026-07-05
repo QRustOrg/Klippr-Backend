@@ -114,12 +114,23 @@ public class UserCommandService : IUserCommandService
         return await _repository.UpdateAsync(user, cancellationToken);
     }
 
-    public async Task<bool> VerifyEmailExistsAsync(ForgotPasswordCommand command, CancellationToken cancellationToken = default)
+    public async Task<PasswordResetRequestResult> RequestPasswordResetAsync(ForgotPasswordCommand command, CancellationToken cancellationToken = default)
     {
         ValidateForgotPasswordCommand(command);
 
         var email = Email.Create(command.Email);
-        return await _repository.ExistsByEmailAsync(email, cancellationToken);
+        var existingUser = await _repository.GetByEmailAsync(email, cancellationToken);
+
+        if (existingUser is null)
+            return new PasswordResetRequestResult(false, null);
+
+        var code = GeneratePasswordResetCode();
+        var codeHash = _hashingService.Hash(code);
+        existingUser.SetPasswordResetCode(codeHash, DateTime.UtcNow.AddMinutes(15));
+
+        await _repository.UpdateAsync(existingUser, cancellationToken);
+
+        return new PasswordResetRequestResult(true, code);
     }
 
     public async Task<User> ResetPasswordAsync(ResetPasswordCommand command, CancellationToken cancellationToken = default)
@@ -132,11 +143,24 @@ public class UserCommandService : IUserCommandService
         if (existingUser == null)
             throw new InvalidOperationException("User not found.");
 
+        if (existingUser.PasswordResetCodeHash is null || existingUser.PasswordResetCodeExpiresAt is null)
+            throw new InvalidOperationException("No password reset was requested for this user.");
+
+        if (DateTime.UtcNow > existingUser.PasswordResetCodeExpiresAt)
+            throw new InvalidOperationException("The password reset code has expired.");
+
+        if (!_hashingService.Verify(command.Code, existingUser.PasswordResetCodeHash))
+            throw new InvalidOperationException("The password reset code is invalid.");
+
         var newPasswordHash = _hashingService.Hash(command.NewPassword);
         existingUser.UpdatePassword(newPasswordHash);
+        existingUser.ClearPasswordResetCode();
 
         return await _repository.UpdateAsync(existingUser, cancellationToken);
     }
+
+    private static string GeneratePasswordResetCode() =>
+        System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
 
     private static void ValidateForgotPasswordCommand(ForgotPasswordCommand command)
     {
@@ -154,6 +178,9 @@ public class UserCommandService : IUserCommandService
 
         if (string.IsNullOrWhiteSpace(command.Email))
             throw new ArgumentException("Email is required.", nameof(command.Email));
+
+        if (string.IsNullOrWhiteSpace(command.Code))
+            throw new ArgumentException("Reset code is required.", nameof(command.Code));
 
         if (string.IsNullOrWhiteSpace(command.NewPassword))
             throw new ArgumentException("Password is required.", nameof(command.NewPassword));

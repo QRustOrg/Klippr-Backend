@@ -13,6 +13,7 @@ public class ResetPasswordCommandFromResourceAssembler
         return new ResetPasswordCommand
         {
             Email = resource.Email,
+            Code = resource.Code,
             NewPassword = resource.NewPassword
         };
     }

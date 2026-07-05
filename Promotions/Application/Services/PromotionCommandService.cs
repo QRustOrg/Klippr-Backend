@@ -1,5 +1,6 @@
 using Klippr_Backend.Promotions.Domain.Aggregates;
 using Klippr_Backend.Promotions.Domain.Commands;
+using Klippr_Backend.Promotions.Domain.Exceptions;
 using Klippr_Backend.Promotions.Domain.Repositories;
 using Klippr_Backend.Promotions.Domain.Services;
 
@@ -40,6 +41,8 @@ public class PromotionCommandService(IPromotionRepository promotionRepository) :
         var promotion = await GetExistingPromotionAsync(command.PromotionId, cancellationToken)
             .ConfigureAwait(false);
 
+        EnsureRequestingBusinessOwnsPromotion(promotion, command.RequestingBusinessId);
+
         promotion.Update(command);
 
         await promotionRepository
@@ -58,6 +61,8 @@ public class PromotionCommandService(IPromotionRepository promotionRepository) :
     {
         var promotion = await GetExistingPromotionAsync(command.PromotionId, cancellationToken)
             .ConfigureAwait(false);
+
+        EnsureRequestingBusinessOwnsPromotion(promotion, command.RequestingBusinessId);
 
         promotion.Publish(command);
 
@@ -78,6 +83,8 @@ public class PromotionCommandService(IPromotionRepository promotionRepository) :
         var promotion = await GetExistingPromotionAsync(command.PromotionId, cancellationToken)
             .ConfigureAwait(false);
 
+        EnsureRequestingBusinessOwnsPromotion(promotion, command.RequestingBusinessId);
+
         promotion.Cancel(command);
 
         await promotionRepository
@@ -97,6 +104,8 @@ public class PromotionCommandService(IPromotionRepository promotionRepository) :
         var promotion = await GetExistingPromotionAsync(command.PromotionId, cancellationToken)
             .ConfigureAwait(false);
 
+        EnsureRequestingBusinessOwnsPromotion(promotion, command.RequestingBusinessId);
+
         await promotionRepository
             .DeleteAsync(promotion, cancellationToken)
             .ConfigureAwait(false);
@@ -106,6 +115,10 @@ public class PromotionCommandService(IPromotionRepository promotionRepository) :
             .ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public Task<bool> TryConsumeRedemptionSlotAsync(Guid promotionId, CancellationToken cancellationToken = default) =>
+        promotionRepository.TryConsumeRedemptionSlotAsync(promotionId, cancellationToken);
+
     private async Task<Promotion> GetExistingPromotionAsync(
         Guid promotionId,
         CancellationToken cancellationToken)
@@ -114,5 +127,11 @@ public class PromotionCommandService(IPromotionRepository promotionRepository) :
                    .GetByIdAsync(promotionId, cancellationToken)
                    .ConfigureAwait(false)
                ?? throw new KeyNotFoundException($"Promotion with id '{promotionId}' was not found.");
+    }
+
+    private static void EnsureRequestingBusinessOwnsPromotion(Promotion promotion, Guid requestingBusinessId)
+    {
+        if (promotion.BusinessId != requestingBusinessId)
+            throw new UnauthorizedPromotionAccessException("El negocio no es dueño de esta promoción.");
     }
 }
