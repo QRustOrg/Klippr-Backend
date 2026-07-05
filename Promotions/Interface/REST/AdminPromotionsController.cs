@@ -1,4 +1,5 @@
 using Klippr_Backend.Promotions.Domain.Commands;
+using Klippr_Backend.Promotions.Domain.Queries;
 using Klippr_Backend.Promotions.Domain.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,8 @@ namespace Klippr_Backend.Promotions.Interface.REST;
 [Route("api/admin/promotions")]
 [Authorize(Roles = "ADMIN")]
 public class AdminPromotionsController(
-    IPromotionCommandService promotionCommandService) : ControllerBase
+    IPromotionCommandService promotionCommandService,
+    IPromotionQueryService promotionQueryService) : ControllerBase
 {
     /// <summary>
     /// Da de baja (cancela) una promoción por moderación.
@@ -32,8 +34,15 @@ public class AdminPromotionsController(
     {
         try
         {
+            var promotion = await promotionQueryService
+                .GetByIdAsync(new GetPromotionByIdQuery(promotionId), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (promotion is null)
+                return NotFound();
+
             await promotionCommandService
-                .CancelAsync(new CancelPromotionCommand(promotionId), cancellationToken)
+                .CancelAsync(new CancelPromotionCommand(promotionId, promotion.BusinessId), cancellationToken)
                 .ConfigureAwait(false);
 
             return NoContent();
@@ -62,8 +71,15 @@ public class AdminPromotionsController(
     {
         try
         {
+            var promotion = await promotionQueryService
+                .GetByIdAsync(new GetPromotionByIdQuery(promotionId), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (promotion is null)
+                return NotFound();
+
             await promotionCommandService
-                .DeleteAsync(new DeletePromotionCommand(promotionId), cancellationToken)
+                .DeleteAsync(new DeletePromotionCommand(promotionId, promotion.BusinessId), cancellationToken)
                 .ConfigureAwait(false);
 
             return NoContent();

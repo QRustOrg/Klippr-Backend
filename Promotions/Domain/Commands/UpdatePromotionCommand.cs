@@ -7,6 +7,7 @@ namespace Klippr_Backend.Promotions.Domain.Commands;
 /// </summary>
 /// <author>Samuel Bonifacio</author>
 /// <param name="PromotionId">Identificador de la promoción que se desea actualizar.</param>
+/// <param name="RequestingBusinessId">Identificador del negocio autenticado que solicita la actualización; debe coincidir con el dueño de la promoción.</param>
 /// <param name="Title">Nuevo título comercial de la promoción.</param>
 /// <param name="Description">Nueva descripción visible de la promoción.</param>
 /// <param name="Discount">Nuevo valor de descuento ofrecido.</param>
@@ -14,10 +15,11 @@ namespace Klippr_Backend.Promotions.Domain.Commands;
 /// <param name="RedemptionCap">Nuevo límite máximo de redenciones; <see langword="null"/> indica redenciones ilimitadas.</param>
 /// <param name="ImageKey">Nueva clave opcional de imagen promocional local.</param>
 /// <remarks>
-/// Este comando no define restricciones sobre el estado de la promoción. 
+/// Este comando no define restricciones sobre el estado de la promoción.
 /// </remarks>
 public record UpdatePromotionCommand(
     Guid PromotionId,
+    Guid RequestingBusinessId,
     string Title,
     string Description,
     DiscountValue Discount,

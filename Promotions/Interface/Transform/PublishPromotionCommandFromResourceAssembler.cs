@@ -21,6 +21,6 @@ public static class PublishPromotionCommandFromResourceAssembler
     {
         ArgumentNullException.ThrowIfNull(resource);
 
-        return new PublishPromotionCommand(promotionId, resource.IsBusinessVerified);
+        return new PublishPromotionCommand(promotionId, Guid.Empty, resource.IsBusinessVerified);
     }
 }

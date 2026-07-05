@@ -5,11 +5,13 @@ namespace Klippr_Backend.Promotions.Domain.Commands;
 /// </summary>
 /// <author>Samuel Bonifacio</author>
 /// <param name="PromotionId">Identificador de la promoción que se desea publicar.</param>
+/// <param name="RequestingBusinessId">Identificador del negocio autenticado que solicita la publicación; debe coincidir con el dueño de la promoción.</param>
 /// <param name="IsBusinessVerified">Indica si el negocio fue validado previamente por el contexto de perfil.</param>
 /// <remarks>
 /// El valor de <paramref name="IsBusinessVerified"/> debe ser resuelto por el caller antes de emitir el comando. El agregado usa este dato para autorizar la transición a publicado.
 /// </remarks>
 public record PublishPromotionCommand(
     Guid PromotionId,
+    Guid RequestingBusinessId,
     bool IsBusinessVerified
 );
