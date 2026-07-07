@@ -72,7 +72,7 @@ public class AuthenticationController : ControllerBase
     }
 
     [HttpPost("sign-up/consumer")]
-    [ProducesResponseType(typeof(UserResource), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(AuthenticatedUserResource), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> SignUpConsumer([FromBody] SignUpConsumerResource resource, CancellationToken cancellationToken)
@@ -88,7 +88,8 @@ public class AuthenticationController : ControllerBase
             var command = SignUpConsumerCommandFromResourceAssembler.Assemble(resource);
             var user = await _userCommandService.SignUpConsumerAsync(command, cancellationToken);
 
-            var response = UserResourceFromEntityAssembler.Assemble(user);
+            var token = _tokenService.GenerateToken(user.Id, user.Email.Value, user.Role.Value);
+            var response = AuthenticatedUserResourceFromEntityAssembler.Assemble(user, token);
 
             return CreatedAtAction(nameof(SignUpConsumer), response);
         }
@@ -107,7 +108,7 @@ public class AuthenticationController : ControllerBase
     }
 
     [HttpPost("sign-up/business")]
-    [ProducesResponseType(typeof(UserResource), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(AuthenticatedUserResource), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> SignUpBusiness([FromBody] SignUpBusinessResource resource, CancellationToken cancellationToken)
@@ -123,7 +124,8 @@ public class AuthenticationController : ControllerBase
             var command = SignUpBusinessCommandFromResourceAssembler.Assemble(resource);
             var user = await _userCommandService.SignUpBusinessAsync(command, cancellationToken);
 
-            var response = UserResourceFromEntityAssembler.Assemble(user);
+            var token = _tokenService.GenerateToken(user.Id, user.Email.Value, user.Role.Value);
+            var response = AuthenticatedUserResourceFromEntityAssembler.Assemble(user, token);
 
             return CreatedAtAction(nameof(SignUpBusiness), response);
         }
