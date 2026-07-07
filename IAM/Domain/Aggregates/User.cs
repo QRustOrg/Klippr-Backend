@@ -15,6 +15,8 @@ public class User
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
+    public string? PasswordResetCodeHash { get; private set; }
+    public DateTime? PasswordResetCodeExpiresAt { get; private set; }
 
     private User() { }
 
@@ -70,6 +72,31 @@ public class User
         };
     }
 
+    public static User CreateAdmin(Email email, string passwordHash, string firstName, string lastName)
+    {
+        if (string.IsNullOrWhiteSpace(passwordHash))
+            throw new ArgumentException("Password hash cannot be null or empty.", nameof(passwordHash));
+
+        if (string.IsNullOrWhiteSpace(firstName))
+            throw new ArgumentException("First name cannot be null or empty.", nameof(firstName));
+
+        if (string.IsNullOrWhiteSpace(lastName))
+            throw new ArgumentException("Last name cannot be null or empty.", nameof(lastName));
+
+        return new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            PasswordHash = passwordHash,
+            Role = Role.Admin,
+            FirstName = firstName.Trim(),
+            LastName = lastName.Trim(),
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+
     public void Deactivate()
     {
         IsActive = false;
@@ -92,4 +119,20 @@ public class User
     }
 
     public bool IsPasswordValid(string providedPasswordHash) => PasswordHash == providedPasswordHash;
+
+    public void SetPasswordResetCode(string codeHash, DateTime expiresAtUtc)
+    {
+        if (string.IsNullOrWhiteSpace(codeHash))
+            throw new ArgumentException("Reset code hash cannot be null or empty.", nameof(codeHash));
+
+        PasswordResetCodeHash = codeHash;
+        PasswordResetCodeExpiresAt = expiresAtUtc;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void ClearPasswordResetCode()
+    {
+        PasswordResetCodeHash = null;
+        PasswordResetCodeExpiresAt = null;
+    }
 }

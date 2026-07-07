@@ -17,13 +17,14 @@ public static class PromotionResourceFromEntityAssembler
     /// </summary>
     /// <param name="promotion">Agregado de promocion que sera expuesto.</param>
     /// <returns>Recurso de respuesta de promocion.</returns>
-    public static PromotionResource ToResource(Promotion promotion)
+    public static PromotionResource ToResource(Promotion promotion, string? businessName = null)
     {
         ArgumentNullException.ThrowIfNull(promotion);
 
         return new PromotionResource(
             promotion.Id,
             promotion.BusinessId,
+            businessName,
             promotion.Title,
             promotion.Description,
             promotion.Discount.Amount,
@@ -31,6 +32,7 @@ public static class PromotionResourceFromEntityAssembler
             promotion.ValidityPeriod.StartDate,
             promotion.ValidityPeriod.EndDate,
             promotion.RedemptionCap,
+            promotion.ImageKey,
             promotion.Status.ToString(),
             promotion.CreatedAt,
             promotion.UpdatedAt,
@@ -48,7 +50,7 @@ public static class PromotionResourceFromEntityAssembler
         ArgumentNullException.ThrowIfNull(promotions);
 
         return promotions
-            .Select(ToResource)
+            .Select(promotion => ToResource(promotion))
             .ToList();
     }
 }

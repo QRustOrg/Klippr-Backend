@@ -17,8 +17,25 @@ public class FavoriteCommandService(
             string.IsNullOrWhiteSpace(command.PromotionId))
             return null;
 
-        if (await favoriteRepository.ExistsAsync(command.UserId, command.PromotionId))
+        var existing = await favoriteRepository.FindByUserAndPromotionAsync(command.UserId, command.PromotionId);
+        if (existing is { IsArchived: false })
             return null;
+
+        if (existing is { IsArchived: true })
+        {
+            existing.Restore(command.UserId);
+            try
+            {
+                favoriteRepository.Update(existing);
+                await unitOfWork.CompleteAsync();
+                return existing;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[FavoriteCommandService] Restore existing error: {ex.Message}");
+                throw;
+            }
+        }
 
         var favorite = new Favorite(command);
         try
@@ -50,6 +67,44 @@ public class FavoriteCommandService(
         catch (Exception ex)
         {
             Console.WriteLine($"[FavoriteCommandService] Remove error: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> Handle(ArchiveFavoriteCommand command)
+    {
+        var favorite = await favoriteRepository.FindByFavoriteIdAsync(command.FavoriteId);
+        if (favorite is null || !favorite.Archive(command.UserId))
+            return false;
+
+        try
+        {
+            favoriteRepository.Update(favorite);
+            await unitOfWork.CompleteAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[FavoriteCommandService] Archive error: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> Handle(RestoreFavoriteCommand command)
+    {
+        var favorite = await favoriteRepository.FindByFavoriteIdAsync(command.FavoriteId);
+        if (favorite is null || !favorite.Restore(command.UserId))
+            return false;
+
+        try
+        {
+            favoriteRepository.Update(favorite);
+            await unitOfWork.CompleteAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[FavoriteCommandService] Restore error: {ex.Message}");
             return false;
         }
     }

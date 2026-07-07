@@ -71,6 +71,124 @@ public class UserCommandService : IUserCommandService
         return createdUser;
     }
 
+    public async Task<User> SignUpAdminAsync(SignUpAdminCommand command, CancellationToken cancellationToken = default)
+    {
+        ValidateSignUpAdminCommand(command);
+
+        var email = Email.Create(command.Email);
+
+        var emailExists = await _repository.ExistsByEmailAsync(email, cancellationToken);
+        if (emailExists)
+            throw new InvalidOperationException("Email already registered.");
+
+        var passwordHash = _hashingService.Hash(command.Password);
+        var user = User.CreateAdmin(email, passwordHash, command.FirstName, command.LastName);
+
+        var createdUser = await _repository.AddAsync(user, cancellationToken);
+        return createdUser;
+    }
+
+    public async Task<User> DeactivateUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("User ID cannot be empty.", nameof(userId));
+
+        var user = await _repository.GetByIdAsync(userId, cancellationToken);
+        if (user == null)
+            throw new InvalidOperationException("User not found.");
+
+        user.Deactivate();
+        return await _repository.UpdateAsync(user, cancellationToken);
+    }
+
+    public async Task<User> ActivateUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("User ID cannot be empty.", nameof(userId));
+
+        var user = await _repository.GetByIdAsync(userId, cancellationToken);
+        if (user == null)
+            throw new InvalidOperationException("User not found.");
+
+        user.Activate();
+        return await _repository.UpdateAsync(user, cancellationToken);
+    }
+
+    public async Task<PasswordResetRequestResult> RequestPasswordResetAsync(ForgotPasswordCommand command, CancellationToken cancellationToken = default)
+    {
+        ValidateForgotPasswordCommand(command);
+
+        var email = Email.Create(command.Email);
+        var existingUser = await _repository.GetByEmailAsync(email, cancellationToken);
+
+        if (existingUser is null)
+            return new PasswordResetRequestResult(false, null);
+
+        var code = GeneratePasswordResetCode();
+        var codeHash = _hashingService.Hash(code);
+        existingUser.SetPasswordResetCode(codeHash, DateTime.UtcNow.AddMinutes(15));
+
+        await _repository.UpdateAsync(existingUser, cancellationToken);
+
+        return new PasswordResetRequestResult(true, code);
+    }
+
+    public async Task<User> ResetPasswordAsync(ResetPasswordCommand command, CancellationToken cancellationToken = default)
+    {
+        ValidateResetPasswordCommand(command);
+
+        var email = Email.Create(command.Email);
+        var existingUser = await _repository.GetByEmailAsync(email, cancellationToken);
+
+        if (existingUser == null)
+            throw new InvalidOperationException("User not found.");
+
+        if (existingUser.PasswordResetCodeHash is null || existingUser.PasswordResetCodeExpiresAt is null)
+            throw new InvalidOperationException("No password reset was requested for this user.");
+
+        if (DateTime.UtcNow > existingUser.PasswordResetCodeExpiresAt)
+            throw new InvalidOperationException("The password reset code has expired.");
+
+        if (!_hashingService.Verify(command.Code, existingUser.PasswordResetCodeHash))
+            throw new InvalidOperationException("The password reset code is invalid.");
+
+        var newPasswordHash = _hashingService.Hash(command.NewPassword);
+        existingUser.UpdatePassword(newPasswordHash);
+        existingUser.ClearPasswordResetCode();
+
+        return await _repository.UpdateAsync(existingUser, cancellationToken);
+    }
+
+    private static string GeneratePasswordResetCode() =>
+        System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+
+    private static void ValidateForgotPasswordCommand(ForgotPasswordCommand command)
+    {
+        if (command == null)
+            throw new ArgumentNullException(nameof(command));
+
+        if (string.IsNullOrWhiteSpace(command.Email))
+            throw new ArgumentException("Email is required.", nameof(command.Email));
+    }
+
+    private static void ValidateResetPasswordCommand(ResetPasswordCommand command)
+    {
+        if (command == null)
+            throw new ArgumentNullException(nameof(command));
+
+        if (string.IsNullOrWhiteSpace(command.Email))
+            throw new ArgumentException("Email is required.", nameof(command.Email));
+
+        if (string.IsNullOrWhiteSpace(command.Code))
+            throw new ArgumentException("Reset code is required.", nameof(command.Code));
+
+        if (string.IsNullOrWhiteSpace(command.NewPassword))
+            throw new ArgumentException("Password is required.", nameof(command.NewPassword));
+
+        if (command.NewPassword.Length < 6)
+            throw new ArgumentException("Password must be at least 6 characters long.", nameof(command.NewPassword));
+    }
+
     private static void ValidateSignInCommand(SignInCommand command)
     {
         if (command == null)
@@ -126,5 +244,26 @@ public class UserCommandService : IUserCommandService
 
         if (string.IsNullOrWhiteSpace(command.TaxId))
             throw new ArgumentException("Tax ID is required.", nameof(command.TaxId));
+    }
+
+    private static void ValidateSignUpAdminCommand(SignUpAdminCommand command)
+    {
+        if (command == null)
+            throw new ArgumentNullException(nameof(command));
+
+        if (string.IsNullOrWhiteSpace(command.Email))
+            throw new ArgumentException("Email is required.", nameof(command.Email));
+
+        if (string.IsNullOrWhiteSpace(command.Password))
+            throw new ArgumentException("Password is required.", nameof(command.Password));
+
+        if (command.Password.Length < 6)
+            throw new ArgumentException("Password must be at least 6 characters long.", nameof(command.Password));
+
+        if (string.IsNullOrWhiteSpace(command.FirstName))
+            throw new ArgumentException("First name is required.", nameof(command.FirstName));
+
+        if (string.IsNullOrWhiteSpace(command.LastName))
+            throw new ArgumentException("Last name is required.", nameof(command.LastName));
     }
 }

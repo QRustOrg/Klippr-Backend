@@ -55,6 +55,22 @@ public class Promotion
     public int? RedemptionCap { get; private set; }
 
     /// <summary>
+    /// Cantidad de canjes ya consumidos contra <see cref="RedemptionCap"/>.
+    /// </summary>
+    /// <remarks>
+    /// Se actualiza exclusivamente mediante un <c>UPDATE</c> atómico condicional en
+    /// <c>PromotionRepository.TryConsumeRedemptionSlotAsync</c> (bounded context Redemption, al confirmar
+    /// un canje), no a través de ningún método del agregado — es el mecanismo que evita el race
+    /// condition de exceder el cupo bajo concurrencia sin necesitar transacciones explícitas.
+    /// </remarks>
+    public int RedemptionsUsed { get; private set; }
+
+    /// <summary>
+    /// Clave de imagen promocional resuelta por los clientes contra assets locales.
+    /// </summary>
+    public string? ImageKey { get; private set; }
+
+    /// <summary>
     /// Estado actual de la promoción.
     /// </summary>
     public PromotionStatus Status { get; private set; }
@@ -82,7 +98,7 @@ public class Promotion
     private Promotion() { } // EF Core
 
     private Promotion(Guid businessId, string title, string description,
-        DiscountValue discount, TimeFrame validityPeriod, int? redemptionCap)
+        DiscountValue discount, TimeFrame validityPeriod, int? redemptionCap, string? imageKey)
     {
         Id = Guid.NewGuid();
         BusinessId = businessId;
@@ -91,6 +107,7 @@ public class Promotion
         Discount = discount;
         ValidityPeriod = validityPeriod;
         RedemptionCap = redemptionCap;
+        ImageKey = PromotionImageKeyCatalog.Normalize(imageKey);
         Status = PromotionStatus.Draft;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
@@ -109,7 +126,8 @@ public class Promotion
             command.Description,
             command.Discount,
             command.ValidityPeriod,
-            command.RedemptionCap
+            command.RedemptionCap,
+            command.ImageKey
         );
     }
 
@@ -130,6 +148,7 @@ public class Promotion
         Discount = command.Discount;
         ValidityPeriod = command.ValidityPeriod;
         RedemptionCap = command.RedemptionCap;
+        ImageKey = PromotionImageKeyCatalog.Normalize(command.ImageKey);
         UpdatedAt = DateTime.UtcNow;
     }
 

@@ -46,6 +46,14 @@ public class PromotionDbContext(DbContextOptions<PromotionDbContext> options) : 
 
             promotion.Property(entity => entity.RedemptionCap);
 
+            promotion.Property(entity => entity.RedemptionsUsed)
+                .HasColumnName("redemption_count")
+                .HasDefaultValue(0)
+                .IsRequired();
+
+            promotion.Property(entity => entity.ImageKey)
+                .HasMaxLength(80);
+
             promotion.Property(entity => entity.Status)
                 .HasConversion<string>()
                 .HasMaxLength(32)

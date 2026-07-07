@@ -51,6 +51,14 @@ public class PromotionRepository(
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<Promotion>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Promotions
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
     public async Task AddAsync(Promotion promotion, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promotion);
@@ -78,6 +86,20 @@ public class PromotionRepository(
         dbContext.Promotions.Remove(promotion);
 
         return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> TryConsumeRedemptionSlotAsync(Guid promotionId, CancellationToken cancellationToken = default)
+    {
+        var affected = await dbContext.Promotions
+            .Where(promotion => promotion.Id == promotionId &&
+                                 (promotion.RedemptionCap == null || promotion.RedemptionsUsed < promotion.RedemptionCap))
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(promotion => promotion.RedemptionsUsed, promotion => promotion.RedemptionsUsed + 1),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return affected == 1;
     }
 
     /// <inheritdoc />

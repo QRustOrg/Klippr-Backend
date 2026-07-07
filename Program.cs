@@ -1,11 +1,17 @@
-using System.Data;
-using System.Data.Common;
+using System.Text;
+using System.Threading.RateLimiting;
 using Klippr_Backend.Analytics.Application.Services.CommandServices;
 using Klippr_Backend.Analytics.Application.Services.QueryServices;
 using Klippr_Backend.Analytics.Domain.Repositories;
 using Klippr_Backend.Analytics.Domain.Services;
 using Klippr_Backend.Analytics.Infrastructure.Persistence;
 using Klippr_Backend.Analytics.Interface.Facade;
+using Klippr_Backend.Community.Application.Services;
+using Klippr_Backend.Community.Domain.Repositories;
+using Klippr_Backend.Community.Domain.Services;
+using Klippr_Backend.Community.Infrastructure.Persistence;
+using Klippr_Backend.Community.Infrastructure.Persistence.Repositories;
+using Klippr_Backend.Community.Interface.Transform;
 using Klippr_Backend.Favorites.Application.Services;
 using Klippr_Backend.Favorites.Domain.Repositories;
 using Klippr_Backend.Favorites.Domain.Services;
@@ -19,17 +25,24 @@ using Klippr_Backend.Promotions.Domain.Repositories;
 using Klippr_Backend.Promotions.Domain.Services;
 using Klippr_Backend.Promotions.Infrastructure.EventPublishing;
 using Klippr_Backend.Promotions.Infrastructure.Persistence;
+using Klippr_Backend.Promotions.Interface.Transform;
+using Klippr_Backend.Redemption.Application.OutboundServices.Signing;
 using Klippr_Backend.Redemption.Application.Services;
 using Klippr_Backend.Redemption.Domain.Repositories;
 using Klippr_Backend.Redemption.Domain.Services;
 using Klippr_Backend.Redemption.Infrastructure.EventPublishing;
 using Klippr_Backend.Redemption.Infrastructure.Persistence;
 using Klippr_Backend.Redemption.Infrastructure.Persistence.Repositories;
+using Klippr_Backend.Redemption.Infrastructure.Signing;
 using Klippr_Backend.Shared.Domain.Repositories;
 using Klippr_Backend.Shared.Infrastructure.EventPublishing;
 using Klippr_Backend.Shared.Infrastructure.Persistence.EFC.Configuration;
 using Klippr_Backend.Shared.Infrastructure.Persistence.EFC.Repositories;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 var defaultConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -39,6 +52,13 @@ var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
 var jwtExpirationMinutes = int.TryParse(builder.Configuration["Jwt:ExpirationMinutes"], out var configuredJwtExpirationMinutes)
     ? configuredJwtExpirationMinutes
     : 60;
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "klippr-iam";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "klippr-api";
+var redemptionHmacSecretKey = builder.Configuration["Redemption:HmacSecretKey"]
+                              ?? throw new InvalidOperationException("Configuration value 'Redemption:HmacSecretKey' is required.");
+var redemptionQrExpirationMinutes = int.TryParse(builder.Configuration["Redemption:QrExpirationMinutes"], out var configuredQrExpirationMinutes)
+    ? configuredQrExpirationMinutes
+    : 120;
 
 var port = Environment.GetEnvironmentVariable("PORT");
 builder.WebHost.UseUrls(port is null ? "http://localhost:8080" : $"http://0.0.0.0:{port}");
@@ -48,18 +68,40 @@ builder.WebHost.UseUrls(port is null ? "http://localhost:8080" : $"http://0.0.0.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen(options => options.EnableAnnotations());
+builder.Services.AddSwaggerGen(options =>
+{
+    options.EnableAnnotations();
+    options.CustomSchemaIds(type => (type.FullName ?? type.Name).Replace("+", "."));
+    options.SwaggerDoc("v1", new OpenApiInfo { Title = "Klippr Backend API", Version = "v1" });
+    options.SwaggerDoc("v2", new OpenApiInfo { Title = "Klippr Backend API", Version = "v2" });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization. Pega solo el token (sin 'Bearer ')."
+    });
+    options.AddSecurityRequirement(doc => new OpenApiSecurityRequirement
+    {
+        { new OpenApiSecuritySchemeReference("Bearer", doc), new List<string>() }
+    });
+});
 
 builder.Services.AddDbContext<AnalyticsDbContext>(options =>
-    options.UseSqlite(defaultConnectionString));
+    options.UseMySQL(defaultConnectionString));
 builder.Services.AddDbContext<PromotionDbContext>(options =>
-    options.UseSqlite(defaultConnectionString));
+    options.UseMySQL(defaultConnectionString));
 builder.Services.AddDbContext<RedemptionDbContext>(options =>
-    options.UseSqlite(defaultConnectionString));
+    options.UseMySQL(defaultConnectionString));
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(defaultConnectionString));
+    options.UseMySQL(defaultConnectionString));
+builder.Services.AddDbContext<ReviewsDbContext>(options =>
+    options.UseMySQL(defaultConnectionString));
 
-builder.Services.AddIamServices(defaultConnectionString, jwtSecretKey, jwtExpirationMinutes);
+builder.Services.AddIamServices(defaultConnectionString, jwtSecretKey, jwtExpirationMinutes, jwtIssuer, jwtAudience);
 builder.Services.AddProfileServices(defaultConnectionString);
 
 builder.Services.AddScoped<IAbuseReportRepository, AbuseReportRepository>();
@@ -72,11 +114,23 @@ builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IPromotionCommandService, PromotionCommandService>();
 builder.Services.AddScoped<IPromotionQueryService, PromotionQueryService>();
 builder.Services.AddScoped<PromotionEventPublisher>();
+builder.Services.AddScoped<PromotionEnrichmentService>();
 
 builder.Services.AddScoped<IRedemptionRepository, RedemptionRepository>();
-builder.Services.AddScoped<IRedemptionCommandService, RedemptionCommandService>();
+builder.Services.AddScoped<IRedemptionCommandService>(sp => new RedemptionCommandService(
+    sp.GetRequiredService<IRedemptionRepository>(),
+    sp.GetRequiredService<IPromotionQueryService>(),
+    sp.GetRequiredService<IPromotionCommandService>(),
+    sp.GetRequiredService<AnalyticsContextFacade>(),
+    redemptionQrExpirationMinutes));
 builder.Services.AddScoped<IRedemptionQueryService, RedemptionQueryService>();
 builder.Services.AddScoped<RedemptionEventPublisher>();
+builder.Services.AddScoped<IRedemptionTokenSigner>(_ => new RedemptionTokenSigner(redemptionHmacSecretKey));
+
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IReviewQueryService, ReviewQueryService>();
+builder.Services.AddScoped<IReviewCommandService, ReviewCommandService>();
+builder.Services.AddScoped<ReviewEnrichmentService>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
@@ -86,106 +140,73 @@ builder.Services.AddScoped<IFavoritesContextFacade, FavoritesContextFacade>();
 
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
+// Setting Bounded Context
+builder.Services.AddScoped<Klippr_Backend.Setting.Domain.Repositories.IPreferenceRepository,
+    Klippr_Backend.Setting.Infrastructure.Persistence.EFC.Repositories.PreferenceRepository>();
+builder.Services.AddScoped<Klippr_Backend.Setting.Domain.Services.IPreferenceCommandService,
+    Klippr_Backend.Setting.Application.Internal.CommandServices.PreferenceCommandService>();
+builder.Services.AddScoped<Klippr_Backend.Setting.Domain.Services.IPreferenceQueryServices,
+    Klippr_Backend.Setting.Application.Internal.QueryServices.PreferenceQueryService>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = true,
+            ValidAudience = jwtAudience,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+builder.Services.AddAuthorization();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    services.GetRequiredService<AnalyticsDbContext>().Database.Migrate();
+    services.GetRequiredService<PromotionDbContext>().Database.Migrate();
+    services.GetRequiredService<RedemptionDbContext>().Database.Migrate();
+    services.GetRequiredService<AppDbContext>().Database.Migrate();
+    services.GetRequiredService<ProfileDbContext>().Database.Migrate();
+    services.GetRequiredService<ReviewsDbContext>().Database.Migrate();
+}
+app.Services.ApplyIamMigrations();
+await Klippr_Backend.IAM.Infrastructure.IamSeeder.SeedAdminAsync(app.Services, builder.Configuration);
+
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "Klippr Backend API v1");
+    options.SwaggerEndpoint("/swagger/v2/swagger.json", "Klippr Backend API v2");
     options.RoutePrefix = "swagger";
 });
+app.MapOpenApi();
 
-if (app.Environment.IsDevelopment())
-    app.MapOpenApi();
-
-using (var scope = app.Services.CreateScope())
-{
-    EnsureDevelopmentSchema<AnalyticsDbContext>(scope.ServiceProvider);
-    EnsureDevelopmentSchema<PromotionDbContext>(scope.ServiceProvider);
-    EnsureDevelopmentSchema<RedemptionDbContext>(scope.ServiceProvider);
-    EnsureDevelopmentSchema<AppDbContext>(scope.ServiceProvider);
-    EnsureDevelopmentSchema<ProfileDbContext>(scope.ServiceProvider);
-}
-app.Services.ApplyIamMigrations();
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
-
-static void EnsureDevelopmentSchema<TContext>(IServiceProvider serviceProvider) where TContext : DbContext
-{
-    var dbContext = serviceProvider.GetRequiredService<TContext>();
-
-    if (dbContext.Database.EnsureCreated() || !dbContext.Database.IsSqlite())
-        return;
-
-    var connection = dbContext.Database.GetDbConnection();
-    var shouldCloseConnection = connection.State != ConnectionState.Open;
-
-    if (shouldCloseConnection)
-        connection.Open();
-
-    try
-    {
-        foreach (var statement in dbContext.Database
-                     .GenerateCreateScript()
-                     .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            var objectName = GetCreatedSqliteObjectName(statement);
-
-            if (objectName is null || SqliteObjectExists(connection, objectName))
-                continue;
-
-            using var command = connection.CreateCommand();
-            command.CommandText = statement;
-            command.ExecuteNonQuery();
-        }
-    }
-    finally
-    {
-        if (shouldCloseConnection)
-            connection.Close();
-    }
-}
-
-static string? GetCreatedSqliteObjectName(string statement)
-{
-    var tokens = statement.Split(' ', 6, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-    if (tokens.Length >= 3 &&
-        tokens[0].Equals("CREATE", StringComparison.OrdinalIgnoreCase) &&
-        tokens[1].Equals("TABLE", StringComparison.OrdinalIgnoreCase))
-        return TrimSqliteIdentifier(tokens[2]);
-
-    if (tokens.Length >= 3 &&
-        tokens[0].Equals("CREATE", StringComparison.OrdinalIgnoreCase) &&
-        tokens[1].Equals("INDEX", StringComparison.OrdinalIgnoreCase))
-        return TrimSqliteIdentifier(tokens[2]);
-
-    if (tokens.Length >= 4 &&
-        tokens[0].Equals("CREATE", StringComparison.OrdinalIgnoreCase) &&
-        tokens[1].Equals("UNIQUE", StringComparison.OrdinalIgnoreCase) &&
-        tokens[2].Equals("INDEX", StringComparison.OrdinalIgnoreCase))
-        return TrimSqliteIdentifier(tokens[3]);
-
-    return null;
-}
-
-static string TrimSqliteIdentifier(string identifier)
-{
-    return identifier.Trim().Trim('"', '`', '[', ']');
-}
-
-static bool SqliteObjectExists(DbConnection connection, string objectName)
-{
-    using var command = connection.CreateCommand();
-    command.CommandText = "SELECT 1 FROM sqlite_master WHERE name = $name LIMIT 1";
-
-    var parameter = command.CreateParameter();
-    parameter.ParameterName = "$name";
-    parameter.Value = objectName;
-    command.Parameters.Add(parameter);
-
-    return command.ExecuteScalar() is not null;
-}

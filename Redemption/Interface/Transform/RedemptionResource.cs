@@ -10,6 +10,7 @@ namespace Klippr_Backend.Redemption.Interface.Transform;
 /// <param name="PromotionId">Identificador de la promocion canjeada.</param>
 /// <param name="Code">Codigo unico del canje en formato legible sin guiones.</param>
 /// <param name="UniqueToken">Token antifraude asociado al canje.</param>
+/// <param name="TokenSignature">Firma HMAC server-side de <paramref name="UniqueToken"/>; es el payload real que debe codificarse en el QR y enviarse al confirmar por token.</param>
 /// <param name="Status">Estado actual del canje como cadena de texto.</param>
 /// <param name="ValidationMethod">Metodo de validacion usado o previsto.</param>
 /// <param name="DiscountAppliedAmount">Monto de descuento aplicado al canje.</param>
@@ -24,6 +25,7 @@ public record RedemptionResource(
     string PromotionId,
     string Code,
     Guid UniqueToken,
+    string TokenSignature,
     string Status,
     string ValidationMethod,
     decimal DiscountAppliedAmount,

@@ -1,3 +1,3 @@
 namespace Klippr_Backend.Favorites.Domain.Queries;
 
-public record GetUserFavoritesQuery(string UserId);
+public record GetUserFavoritesQuery(string UserId, bool Archived = false);

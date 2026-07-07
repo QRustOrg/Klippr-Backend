@@ -23,12 +23,14 @@ public static class UpdatePromotionCommandFromResourceAssembler
         ArgumentNullException.ThrowIfNull(resource);
 
         return new UpdatePromotionCommand(
-            promotionId,
-            resource.Title,
-            resource.Description,
-            new DiscountValue(resource.DiscountAmount, DiscountTypeParser.Parse(resource.DiscountType)),
-            new TimeFrame(resource.StartDate, resource.EndDate),
-            resource.RedemptionCap
+            PromotionId: promotionId,
+            RequestingBusinessId: Guid.Empty,
+            Title: resource.Title,
+            Description: resource.Description,
+            Discount: new DiscountValue(resource.DiscountAmount, DiscountTypeParser.Parse(resource.DiscountType)),
+            ValidityPeriod: new TimeFrame(resource.StartDate, resource.EndDate),
+            RedemptionCap: resource.RedemptionCap,
+            ImageKey: resource.ImageKey
         );
     }
 }

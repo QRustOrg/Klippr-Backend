@@ -5,6 +5,7 @@ using Klippr_Backend.Profile.Domain.Queries;
 using Klippr_Backend.Profile.Domain.Services;
 using Klippr_Backend.Profile.Interface.Assemblers;
 using Klippr_Backend.Profile.Interface.Resources;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -41,7 +42,7 @@ public class ProfileController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new UnauthorizedAccessException("User ID not found in token."));
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException("User ID not found in token."));
             var command = CreateConsumerProfileCommandFromResourceAssembler.ToCommand(resource, userId);
 
             var profile = await _consumerCommandService.CreateProfileAsync(command, cancellationToken);
@@ -118,7 +119,7 @@ public class ProfileController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var userId = Guid.Parse(User.FindFirst("sub")?.Value ?? throw new UnauthorizedAccessException("User ID not found in token."));
+            var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new UnauthorizedAccessException("User ID not found in token."));
 
             var command = new CreateBusinessProfileCommand
             {

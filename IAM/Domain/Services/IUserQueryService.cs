@@ -9,4 +9,5 @@ public interface IUserQueryService
     Task<User?> GetUserByEmailAsync(GetUserByEmailQuery query, CancellationToken cancellationToken = default);
     Task<IEnumerable<User>> GetAllUsersAsync(GetAllUsersQuery query, CancellationToken cancellationToken = default);
     Task<IEnumerable<User>> GetUsersByRoleAsync(GetUsersByRoleQuery query, CancellationToken cancellationToken = default);
+    Task<int> CountAsync(CancellationToken cancellationToken = default);
 }

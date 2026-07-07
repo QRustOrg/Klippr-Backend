@@ -9,7 +9,7 @@ public class FavoriteQueryService(IFavoriteRepository favoriteRepository)
     : IFavoriteQueryService
 {
     public async Task<IEnumerable<Favorite>> Handle(GetUserFavoritesQuery query) =>
-        await favoriteRepository.FindByUserIdAsync(query.UserId);
+        await favoriteRepository.FindByUserIdAsync(query.UserId, query.Archived);
 
     public async Task<Favorite?> Handle(int id) =>
         await favoriteRepository.FindByIdAsync(id);

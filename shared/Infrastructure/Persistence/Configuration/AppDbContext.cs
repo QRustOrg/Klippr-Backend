@@ -1,5 +1,6 @@
 using EntityFrameworkCore.CreatedUpdatedDate.Extensions;
 using Klippr_Backend.Favorites.Infrastructure.Persistence;
+using Klippr_Backend.Setting.Infrastructure.Persistence.EFC.Configuration.Extensions;
 using Klippr_Backend.Shared.Infrastructure.Persistence.EFC.Configuration.Extensions;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     {
         base.OnModelCreating(builder);
         builder.ApplyFavoritesConfiguration();
+        builder.ApplySettingConfiguration();
         builder.UseSnakeCaseNamingConvention();
     }
 }

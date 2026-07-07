@@ -13,13 +13,22 @@ public interface IRedemptionCommandService
     /// Genera un nuevo canje para una promocion.
     /// </summary>
     /// <param name="command">Datos necesarios para generar el canje.</param>
-    /// <returns>Canje generado o <see langword="null"/> si no pudo completarse.</returns>
-    Task<RedemptionAggregate?> Handle(RedeemPromotionCommand command);
+    /// <returns>Canje generado o reutilizado, o <see langword="null"/> si no pudo completarse.</returns>
+    Task<RedeemPromotionResult?> Handle(RedeemPromotionCommand command);
 
     /// <summary>
     /// Confirma el uso de un canje existente.
     /// </summary>
     /// <param name="command">Datos necesarios para confirmar el canje.</param>
+    /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Canje confirmado o <see langword="null"/> si no pudo completarse.</returns>
-    Task<RedemptionAggregate?> Handle(ConfirmRedemptionCommand command);
+    Task<RedemptionAggregate?> Handle(ConfirmRedemptionCommand command, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Confirma el uso de un canje existente a partir de su token unico.
+    /// </summary>
+    /// <param name="command">Datos necesarios para confirmar el canje por token.</param>
+    /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
+    /// <returns>Canje confirmado o <see langword="null"/> si no pudo completarse.</returns>
+    Task<RedemptionAggregate?> Handle(ConfirmRedemptionByTokenCommand command, CancellationToken cancellationToken = default);
 }

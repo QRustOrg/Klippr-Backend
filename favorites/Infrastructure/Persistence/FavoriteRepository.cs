@@ -9,9 +9,9 @@ namespace Klippr_Backend.Favorites.Infrastructure.Persistence;
 public class FavoriteRepository(AppDbContext context)
     : BaseRepository<Favorite>(context), IFavoriteRepository
 {
-    public async Task<IEnumerable<Favorite>> FindByUserIdAsync(string userId) =>
+    public async Task<IEnumerable<Favorite>> FindByUserIdAsync(string userId, bool archived = false) =>
         (await Context.Set<Favorite>()
-            .Where(f => f.UserId == userId)
+            .Where(f => f.UserId == userId && f.IsArchived == archived)
             .ToListAsync())
         .OrderByDescending(f => f.CreatedDate);
 
@@ -19,7 +19,11 @@ public class FavoriteRepository(AppDbContext context)
         await Context.Set<Favorite>()
             .FirstOrDefaultAsync(f => f.FavoriteId == favoriteId);
 
+    public async Task<Favorite?> FindByUserAndPromotionAsync(string userId, string promotionId) =>
+        await Context.Set<Favorite>()
+            .FirstOrDefaultAsync(f => f.UserId == userId && f.PromotionId == promotionId);
+
     public async Task<bool> ExistsAsync(string userId, string promotionId) =>
         await Context.Set<Favorite>()
-            .AnyAsync(f => f.UserId == userId && f.PromotionId == promotionId);
+            .AnyAsync(f => f.UserId == userId && f.PromotionId == promotionId && !f.IsArchived);
 }
