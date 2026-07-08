@@ -44,6 +44,6 @@ public class ReviewQueryService(
 
         return redemptions.Any(redemption =>
             redemption.PromotionId == promotionIdAsString &&
-            redemption.Status == RedemptionStatus.Redeemed);
+            (redemption.Status == RedemptionStatus.Redeemed || redemption.Status == RedemptionStatus.Blocked));
     }
 }
