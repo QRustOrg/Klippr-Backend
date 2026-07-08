@@ -144,46 +144,95 @@ public class RedemptionController(
     /// <param name="cancellationToken">Token para cancelar la operacion asincronica.</param>
     /// <returns>Resultado HTTP con el canje confirmado.</returns>
     [HttpPost("{redemptionId:int}/confirm")]
-    [Authorize(Roles = "BUSINESS")]
+    [Authorize(Roles = "BUSINESS,CONSUMER")]
     [SwaggerOperation(
         Summary = "Confirmar canje",
-        Description = "Registra el uso efectivo de un canje por parte del negocio, cambiando su estado a canjeado. Valida que el canje pertenezca al negocio indicado y que no haya expirado.",
+        Description = "Registra el uso efectivo de un canje. Para negocios, valida que el canje pertenezca al negocio indicado. Para consumidores, valida que el canje les pertenezca. Valida vigencia y estado antes de confirmar.",
         OperationId = "ConfirmRedemption")]
     public async Task<IActionResult> ConfirmAsync(
         int redemptionId,
         [FromBody] ConfirmRedemptionResource resource,
         CancellationToken cancellationToken)
     {
-        var businessProfile = await profileContextFacade
-            .GetBusinessProfileByUserIdAsync(GetUserId(), cancellationToken)
-            .ConfigureAwait(false);
-
-        if (businessProfile is null)
-            return Forbid();
-
-        try
+        var isConsumer = User.IsInRole("CONSUMER");
+        
+        if (isConsumer)
         {
-            var command = ConfirmRedemptionCommandFromResourceAssembler.ToCommand(redemptionId, resource) with { BusinessId = businessProfile.Id };
-            var redemption = await redemptionCommandService
-                .Handle(command, cancellationToken)
+            var consumerId = GetUserId();
+            var redemption = await redemptionQueryService
+                .Handle(new GetRedemptionByIdQuery(redemptionId))
                 .ConfigureAwait(false);
 
             if (redemption is null)
                 return NotFound();
 
-            return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption, redemptionTokenSigner));
+            if (redemption.ConsumerId != consumerId)
+                return Forbid();
+
+            var command = new Klippr_Backend.Redemption.Domain.Commands.ConfirmRedemptionCommand(
+                redemptionId,
+                redemption.BusinessId,
+                Klippr_Backend.Redemption.Domain.ValueObjects.RedemptionValidationMethod.ManualCode,
+                resource.ConfirmedAt
+            );
+            
+            try
+            {
+                var confirmedRedemption = await redemptionCommandService
+                    .Handle(command, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (confirmedRedemption is null)
+                    return NotFound();
+
+                return Ok(RedemptionResourceFromEntityAssembler.ToResource(confirmedRedemption, redemptionTokenSigner));
+            }
+            catch (RedemptionConflictException exception)
+            {
+                return Conflict(new { message = exception.Message });
+            }
+            catch (ArgumentException exception)
+            {
+                return BadRequest(exception.Message);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return BadRequest(exception.Message);
+            }
         }
-        catch (RedemptionConflictException exception)
+        else
         {
-            return Conflict(new { message = exception.Message });
-        }
-        catch (ArgumentException exception)
-        {
-            return BadRequest(exception.Message);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return BadRequest(exception.Message);
+            var businessProfile = await profileContextFacade
+                .GetBusinessProfileByUserIdAsync(GetUserId(), cancellationToken)
+                .ConfigureAwait(false);
+
+            if (businessProfile is null)
+                return Forbid();
+
+            try
+            {
+                var command = ConfirmRedemptionCommandFromResourceAssembler.ToCommand(redemptionId, resource) with { BusinessId = businessProfile.Id };
+                var redemption = await redemptionCommandService
+                    .Handle(command, cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (redemption is null)
+                    return NotFound();
+
+                return Ok(RedemptionResourceFromEntityAssembler.ToResource(redemption, redemptionTokenSigner));
+            }
+            catch (RedemptionConflictException exception)
+            {
+                return Conflict(new { message = exception.Message });
+            }
+            catch (ArgumentException exception)
+            {
+                return BadRequest(exception.Message);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return BadRequest(exception.Message);
+            }
         }
     }
 
