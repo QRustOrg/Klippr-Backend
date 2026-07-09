@@ -28,6 +28,7 @@ public static class ModelBuilderExtensions
             review.ToTable("reviews");
 
             review.HasKey(entity => entity.Id);
+            review.Property(entity => entity.Id).ValueGeneratedNever();
 
             review.Property(entity => entity.PromotionId).IsRequired();
             review.Property(entity => entity.UserId).IsRequired();
@@ -55,6 +56,7 @@ public static class ModelBuilderExtensions
             comment.ToTable("review_comments");
 
             comment.HasKey(entity => entity.Id);
+            comment.Property(entity => entity.Id).ValueGeneratedNever();
 
             comment.Property(entity => entity.UserId).IsRequired();
             comment.Property(entity => entity.Comment).HasMaxLength(1000).IsRequired();
