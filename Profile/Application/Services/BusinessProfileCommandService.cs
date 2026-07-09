@@ -1,6 +1,7 @@
 using Klippr_Backend.Profile.Application.OutboundServices;
 using Klippr_Backend.Profile.Domain.Aggregates;
 using Klippr_Backend.Profile.Domain.Commands;
+using Klippr_Backend.Profile.Domain.Exceptions;
 using Klippr_Backend.Profile.Domain.Repositories;
 using Klippr_Backend.Profile.Domain.Services;
 using Klippr_Backend.Profile.Domain.ValueObjects;
@@ -68,6 +69,8 @@ public class BusinessProfileCommandService : IBusinessProfileCommandService
         var profile = await _repository.GetByIdAsync(command.ProfileId, cancellationToken);
         if (profile == null)
             throw new InvalidOperationException("Profile not found.");
+        if (profile.UserId != command.RequestingUserId)
+            throw new UnauthorizedProfileAccessException("The authenticated user does not own this business profile.");
 
         profile.SubmitVerification(command.DocumentUrl);
         var updatedProfile = await _repository.UpdateAsync(profile, cancellationToken);

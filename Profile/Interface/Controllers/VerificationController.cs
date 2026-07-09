@@ -1,8 +1,10 @@
 using Klippr_Backend.Profile.Application.Services;
 using Klippr_Backend.Profile.Domain.Commands;
+using Klippr_Backend.Profile.Domain.Exceptions;
 using Klippr_Backend.Profile.Domain.Services;
 using Klippr_Backend.Profile.Interface.Assemblers;
 using Klippr_Backend.Profile.Interface.Resources;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -25,6 +27,10 @@ public class VerificationController : ControllerBase
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    private Guid GetUserId() =>
+        Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new UnauthorizedAccessException("User ID not found in token."));
+
     [HttpPost("submit")]
     public async Task<IActionResult> SubmitVerification([FromBody] VerificationDocumentResource resource, CancellationToken cancellationToken)
     {
@@ -34,9 +40,14 @@ public class VerificationController : ControllerBase
                 return BadRequest(ModelState);
 
             var command = VerificationDocumentCommandFromResourceAssembler.ToSubmitCommand(resource);
+            command.RequestingUserId = GetUserId();
             var profile = await _commandService.SubmitVerificationAsync(command, cancellationToken);
 
             return Ok(new { message = "Verification document submitted successfully", profileId = profile.Id });
+        }
+        catch (UnauthorizedProfileAccessException)
+        {
+            return Forbid();
         }
         catch (Exception ex)
         {

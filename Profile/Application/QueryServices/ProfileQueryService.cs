@@ -42,6 +42,26 @@ public class ProfileQueryService : IProfileQueryService
         return await _businessRepository.GetByUserIdAsync(query.UserId, cancellationToken);
     }
 
+    public async Task<ConsumerProfile?> GetConsumerProfileByIdAsync(GetConsumerProfileByIdQuery query, CancellationToken cancellationToken = default)
+    {
+        if (query == null)
+            throw new ArgumentNullException(nameof(query));
+        if (query.ProfileId == Guid.Empty)
+            throw new ArgumentException("Profile ID cannot be empty.", nameof(query.ProfileId));
+
+        return await _consumerRepository.GetByIdAsync(query.ProfileId, cancellationToken);
+    }
+
+    public async Task<BusinessProfile?> GetBusinessProfileByIdAsync(GetBusinessProfileByIdQuery query, CancellationToken cancellationToken = default)
+    {
+        if (query == null)
+            throw new ArgumentNullException(nameof(query));
+        if (query.ProfileId == Guid.Empty)
+            throw new ArgumentException("Profile ID cannot be empty.", nameof(query.ProfileId));
+
+        return await _businessRepository.GetByIdAsync(query.ProfileId, cancellationToken);
+    }
+
     public async Task<string?> GetVerificationStatusAsync(GetVerificationStatusQuery query, CancellationToken cancellationToken = default)
     {
         if (query == null)

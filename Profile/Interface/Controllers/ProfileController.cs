@@ -34,6 +34,10 @@ public class ProfileController : ControllerBase
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    private Guid GetUserId() =>
+        Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new UnauthorizedAccessException("User ID not found in token."));
+
     [HttpPost("consumer")]
     public async Task<IActionResult> CreateConsumerProfile([FromBody] ConsumerProfileResource resource, CancellationToken cancellationToken)
     {
@@ -62,10 +66,12 @@ public class ProfileController : ControllerBase
     {
         try
         {
-            var query = new GetConsumerProfileByUserIdQuery { UserId = profileId };
-            var profile = await _queryService.GetConsumerProfileByUserIdAsync(query, cancellationToken);
+            var query = new GetConsumerProfileByIdQuery { ProfileId = profileId };
+            var profile = await _queryService.GetConsumerProfileByIdAsync(query, cancellationToken);
 
             if (profile == null)
+                return NotFound();
+            if (profile.UserId != GetUserId() && !User.IsInRole("ADMIN"))
                 return NotFound();
 
             var resource = ConsumerProfileResourceFromEntityAssembler.ToResource(profile);
@@ -146,10 +152,12 @@ public class ProfileController : ControllerBase
     {
         try
         {
-            var query = new GetBusinessProfileByUserIdQuery { UserId = profileId };
-            var profile = await _queryService.GetBusinessProfileByUserIdAsync(query, cancellationToken);
+            var query = new GetBusinessProfileByIdQuery { ProfileId = profileId };
+            var profile = await _queryService.GetBusinessProfileByIdAsync(query, cancellationToken);
 
             if (profile == null)
+                return NotFound();
+            if (profile.UserId != GetUserId() && !User.IsInRole("ADMIN"))
                 return NotFound();
 
             var resource = BusinessProfileResourceFromEntityAssembler.ToResource(profile);

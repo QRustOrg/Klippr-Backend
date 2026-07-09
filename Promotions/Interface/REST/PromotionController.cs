@@ -245,7 +245,6 @@ public class PromotionController(
         OperationId = "PublishPromotion")]
     public async Task<IActionResult> PublishAsync(
         Guid promotionId,
-        [FromBody] PublishPromotionResource resource,
         CancellationToken cancellationToken)
     {
         var businessProfile = await profileContextFacade
@@ -257,7 +256,10 @@ public class PromotionController(
 
         try
         {
-            var command = PublishPromotionCommandFromResourceAssembler.ToCommand(promotionId, resource) with { RequestingBusinessId = businessProfile.Id };
+            var command = new PublishPromotionCommand(
+                promotionId,
+                businessProfile.Id,
+                businessProfile.VerificationStatus.IsApproved);
 
             await promotionCommandService
                 .PublishAsync(command, cancellationToken)

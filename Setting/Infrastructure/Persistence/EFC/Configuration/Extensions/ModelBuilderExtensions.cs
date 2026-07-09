@@ -10,7 +10,7 @@ public static class ModelBuilderExtensions
         // Preference Context
         builder.Entity<Preference>().HasKey(r => r.Id);
         builder.Entity<Preference>().Property(r => r.Id).IsRequired().ValueGeneratedOnAdd();
-        builder.Entity<Preference>().Property(r => r.UserId).IsRequired().HasMaxLength(30);
+        builder.Entity<Preference>().Property(r => r.UserId).IsRequired().HasMaxLength(36);
         builder.Entity<Preference>().Property(r => r.DarkMode).IsRequired();
         builder.Entity<Preference>().Property(r => r.LanguageCode).IsRequired().HasMaxLength(30);
         builder.Entity<Preference>().Property(r => r.Timezone).IsRequired();

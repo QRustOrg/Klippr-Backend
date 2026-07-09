@@ -32,7 +32,6 @@ public class ReviewCommandService(
             throw new KeyNotFoundException("Review not found.");
 
         var comment = review.AddComment(command.UserId, command.Comment);
-        reviewRepository.Update(review);
         await reviewRepository.SaveChangesAsync().ConfigureAwait(false);
         return comment;
     }
