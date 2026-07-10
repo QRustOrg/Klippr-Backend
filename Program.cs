@@ -18,6 +18,10 @@ using Klippr_Backend.Favorites.Domain.Services;
 using Klippr_Backend.Favorites.Infrastructure.Persistence;
 using Klippr_Backend.Favorites.Interface.Facade;
 using Klippr_Backend.IAM.Infrastructure;
+using Klippr_Backend.Notifications.Application.Services;
+using Klippr_Backend.Notifications.Domain.Repositories;
+using Klippr_Backend.Notifications.Domain.Services;
+using Klippr_Backend.Notifications.Infrastructure.Persistence;
 using Klippr_Backend.Profile.Infrastructure;
 using Klippr_Backend.Profile.Infrastructure.Persistence;
 using Klippr_Backend.Promotions.Application.Services;
@@ -65,7 +69,12 @@ builder.WebHost.UseUrls(port is null ? "http://localhost:8080" : $"http://0.0.0.
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(options =>
@@ -137,6 +146,11 @@ builder.Services.AddScoped<IFavoriteRepository, FavoriteRepository>();
 builder.Services.AddScoped<IFavoriteCommandService, FavoriteCommandService>();
 builder.Services.AddScoped<IFavoriteQueryService, FavoriteQueryService>();
 builder.Services.AddScoped<IFavoritesContextFacade, FavoritesContextFacade>();
+
+// Notification
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationCommandService, NotificationCommandService>();
+builder.Services.AddScoped<INotificationQueryService, NotificationQueryService>();
 
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
